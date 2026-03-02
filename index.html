@@ -2,22 +2,52 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Trading Hub Umberto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U.G.T. Trading Command</title>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px; }
-        .btn { padding: 20px; background: #1e1e1e; border: 2px solid #333; color: #00ff00; 
-               text-decoration: none; border-radius: 10px; font-weight: bold; }
-        .btn:hover { background: #333; }
+        :root { --bg: #0a0a0a; --card: #161616; --accent: #00ff41; --text: #e0e0e0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
+        h1 { font-size: 1.2rem; letter-spacing: 2px; color: var(--accent); border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
+        .tab-btn { background: var(--card); border: 1px solid #333; color: var(--text); padding: 10px 20px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; text-transform: uppercase; }
+        .tab-btn.active { border-color: var(--accent); color: var(--accent); }
+        .section { display: none; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .section.active { display: grid; }
+        .link-card { background: var(--card); border: 1px solid #222; padding: 15px; text-decoration: none; color: white; border-radius: 6px; text-align: center; transition: 0.2s; font-size: 0.9rem; }
+        .link-card:hover { border-color: var(--accent); background: #1f1f1f; }
     </style>
 </head>
 <body>
-    <h1>TRADING DASHBOARD</h1>
-    <div class="grid">
-        <a href="https://it.tradingview.com" target="_blank" class="btn">TRADINGVIEW</a>
-        <a href="https://www.binance.com" target="_blank" class="btn">BINANCE</a>
-        <a href="https://www.bloomberg.com" target="_blank" class="btn">NEWS</a>
-        <a href="https://www.investing.com" target="_blank" class="btn">CALENDARIO</a>
+    <h1>STRATEGIC TRADING HUB</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="show('news')">News</button>
+        <button class="tab-btn" onclick="show('analisi')">Analisi</button>
+        <button class="tab-btn" onclick="show('brokers')">Brokers</button>
+        <button class="tab-btn" onclick="show('pac')">PAC Planning</button>
+        <button class="tab-btn" onclick="show('cash')">Cash Flow</button>
     </div>
+
+    <div id="news" class="section active">
+        <a href="https://www.bloomberg.com" target="_blank" class="link-card">Bloomberg</a>
+        <a href="https://www.reuters.com" target="_blank" class="link-card">Reuters</a>
+    </div>
+
+    <div id="analisi" class="section">
+        <a href="https://it.tradingview.com" target="_blank" class="link-card">TradingView</a>
+    </div>
+
+    <div id="pac" class="section">
+        <a href="https://it.tradingview.com" target="_blank" class="link-card">TV (Watchlist PAC)</a>
+        <a href="https://docs.google.com/spreadsheets/..." target="_blank" class="link-card">Sheet Planning</a>
+    </div>
+
+    <script>
+        function show(id) {
+            document.querySelectorAll('.section, .tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
 </body>
 </html>
