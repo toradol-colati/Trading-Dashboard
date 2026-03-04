@@ -2,52 +2,75 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>U.G.T. Trading Command</title>
+    <title>U.G.T. Advanced Command</title>
     <style>
-        :root { --bg: #0a0a0a; --card: #161616; --accent: #00ff41; --text: #e0e0e0; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
-        h1 { font-size: 1.2rem; letter-spacing: 2px; color: var(--accent); border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
-        .tab-btn { background: var(--card); border: 1px solid #333; color: var(--text); padding: 10px 20px; cursor: pointer; border-radius: 4px; font-size: 0.8rem; text-transform: uppercase; }
-        .tab-btn.active { border-color: var(--accent); color: var(--accent); }
-        .section { display: none; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .section.active { display: grid; }
-        .link-card { background: var(--card); border: 1px solid #222; padding: 15px; text-decoration: none; color: white; border-radius: 6px; text-align: center; transition: 0.2s; font-size: 0.9rem; }
-        .link-card:hover { border-color: var(--accent); background: #1f1f1f; }
+        :root { --bg: #050505; --accent: #00ff41; --text: #e0e0e0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 20px; }
+        .topic { margin-bottom: 30px; border-left: 2px solid var(--accent); padding-left: 15px; }
+        .topic-title { font-size: 1.5rem; text-transform: uppercase; margin-bottom: 10px; color: var(--accent); }
+        .sub-section { margin-left: 20px; margin-bottom: 15px; }
+        .sub-title { font-size: 1rem; color: #888; margin-bottom: 8px; border-bottom: 1px solid #222; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .option-btn { background: #111; border: 1px solid #333; color: white; padding: 12px; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.85rem; }
+        .option-btn:hover { border-color: var(--accent); background: #1a1a1a; }
     </style>
 </head>
 <body>
-    <h1>STRATEGIC TRADING HUB</h1>
-    
-    <div class="tabs">
-        <button class="tab-btn active" onclick="show('news')">News</button>
-        <button class="tab-btn" onclick="show('analisi')">Analisi</button>
-        <button class="tab-btn" onclick="show('brokers')">Brokers</button>
-        <button class="tab-btn" onclick="show('pac')">PAC Planning</button>
-        <button class="tab-btn" onclick="show('cash')">Cash Flow</button>
-    </div>
-
-    <div id="news" class="section active">
-        <a href="https://www.bloomberg.com" target="_blank" class="link-card">Bloomberg</a>
-        <a href="https://www.reuters.com" target="_blank" class="link-card">Reuters</a>
-    </div>
-
-    <div id="analisi" class="section">
-        <a href="https://it.tradingview.com" target="_blank" class="link-card">TradingView</a>
-    </div>
-
-    <div id="pac" class="section">
-        <a href="https://it.tradingview.com" target="_blank" class="link-card">TV (Watchlist PAC)</a>
-        <a href="https://docs.google.com/spreadsheets/..." target="_blank" class="link-card">Sheet Planning</a>
-    </div>
+    <div id="main-container">Caricamento Hub...</div>
 
     <script>
-        function show(id) {
-            document.querySelectorAll('.section, .tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            event.currentTarget.classList.add('active');
+        // Questa struttura la modificherai su GitHub per aggiungere Topics e Link
+        const data = {
+            topics: [
+                {
+                    name: "Analisi Mercati",
+                    subsections: [
+                        {
+                            name: "Grafici Realtime",
+                            options: [
+                                { name: "TV Bitcoin", url: "https://it.tradingview.com/chart/..." },
+                                { name: "Order Flow", url: "https://bookmap.com" }
+                            ]
+                        },
+                        {
+                            name: "Sentiment",
+                            options: [
+                                { name: "Fear & Greed", url: "https://alternative.me/crypto/fear-and-greed-index/" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Gestione Cash",
+                    subsections: [
+                        {
+                            name: "Planning",
+                            options: [
+                                { name: "File PAC (GitHub)", url: "tuo-file.pdf" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        function render() {
+            const container = document.getElementById('main-container');
+            container.innerHTML = '';
+            data.topics.forEach(topic => {
+                let html = `<div class="topic"><div class="topic-title">${topic.name}</div>`;
+                topic.subsections.forEach(sub => {
+                    html += `<div class="sub-section"><div class="sub-title">${sub.name}</div><div class="grid">`;
+                    sub.options.forEach(opt => {
+                        html += `<a href="${opt.url}" target="_blank" class="option-btn">${opt.name}</a>`;
+                    });
+                    html += `</div></div>`;
+                });
+                html += `</div>`;
+                container.innerHTML += html;
+            });
         }
+        render();
     </script>
 </body>
 </html>
