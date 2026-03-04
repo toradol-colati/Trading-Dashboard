@@ -4,23 +4,33 @@
     <meta charset="UTF-8">
     <title>U.G.T. Advanced Command</title>
     <style>
-        :root { --bg: #050505; --accent: #00ff41; --text: #e0e0e0; }
+        :root { --bg: #050505; --accent: #00ff41; --text: #e0e0e0; --card: #111; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 20px; }
-        .topic { margin-bottom: 30px; border-left: 2px solid var(--accent); padding-left: 15px; }
-        .topic-title { font-size: 1.5rem; text-transform: uppercase; margin-bottom: 10px; color: var(--accent); }
-        .sub-section { margin-left: 20px; margin-bottom: 15px; }
-        .sub-title { font-size: 1rem; color: #888; margin-bottom: 8px; border-bottom: 1px solid #222; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .option-btn { background: #111; border: 1px solid #333; color: white; padding: 12px; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.85rem; }
+        .topic { margin-bottom: 40px; border-left: 3px solid var(--accent); padding-left: 20px; position: relative; }
+        .topic-title { font-size: 1.6rem; text-transform: uppercase; color: var(--accent); margin-bottom: 15px; }
+        .sub-section { margin-left: 25px; margin-bottom: 25px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        .sub-title { font-size: 1.1rem; color: #888; margin-bottom: 10px; display: flex; align-items: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+        .option-btn { background: var(--card); border: 1px solid #333; color: white; padding: 15px; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.9rem; transition: 0.2s; }
         .option-btn:hover { border-color: var(--accent); background: #1a1a1a; }
+        
+        /* UI di Editing */
+        .add-btn { background: #222; color: var(--accent); border: 1px dashed var(--accent); padding: 5px 10px; cursor: pointer; margin-left: 10px; font-size: 0.8rem; border-radius: 3px; }
+        .add-btn:hover { background: var(--accent); color: black; }
+        .controls { position: fixed; bottom: 20px; right: 20px; background: #111; padding: 10px; border: 1px solid var(--accent); border-radius: 5px; }
     </style>
 </head>
 <body>
-    <div id="main-container">Caricamento Hub...</div>
+    <div id="main-container"></div>
+
+    <div class="controls">
+        <button class="add-btn" onclick="addTopic()">+ NUOVO TOPIC</button>
+        <button class="add-btn" style="border-color: #ff9800; color: #ff9800;" onclick="exportData()">SALVA CONFIG</button>
+    </div>
 
     <script>
-        // Questa struttura la modificherai su GitHub per aggiungere Topics e Link
-        const data = {
+        // DATI INIZIALI (Modifica questi per personalizzare la base)
+        let data = {
             topics: [
                 {
                     name: "Analisi Mercati",
@@ -28,25 +38,8 @@
                         {
                             name: "Grafici Realtime",
                             options: [
-                                { name: "TV Bitcoin", url: "https://it.tradingview.com/chart/..." },
+                                { name: "TV Bitcoin", url: "https://it.tradingview.com" },
                                 { name: "Order Flow", url: "https://bookmap.com" }
-                            ]
-                        },
-                        {
-                            name: "Sentiment",
-                            options: [
-                                { name: "Fear & Greed", url: "https://alternative.me/crypto/fear-and-greed-index/" }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    name: "Gestione Cash",
-                    subsections: [
-                        {
-                            name: "Planning",
-                            options: [
-                                { name: "File PAC (GitHub)", url: "tuo-file.pdf" }
                             ]
                         }
                     ]
@@ -57,10 +50,15 @@
         function render() {
             const container = document.getElementById('main-container');
             container.innerHTML = '';
-            data.topics.forEach(topic => {
-                let html = `<div class="topic"><div class="topic-title">${topic.name}</div>`;
-                topic.subsections.forEach(sub => {
-                    html += `<div class="sub-section"><div class="sub-title">${sub.name}</div><div class="grid">`;
+            data.topics.forEach((topic, tIdx) => {
+                let html = `<div class="topic">
+                    <div class="topic-title">${topic.name}</div>
+                    <button class="add-btn" onclick="addSub(${tIdx})">+ SUB-SECTION</button>`;
+                
+                topic.subsections.forEach((sub, sIdx) => {
+                    html += `<div class="sub-section">
+                        <div class="sub-title">${sub.name} <button class="add-btn" onclick="addOption(${tIdx}, ${sIdx})">+ OPZIONE</button></div>
+                        <div class="grid">`;
                     sub.options.forEach(opt => {
                         html += `<a href="${opt.url}" target="_blank" class="option-btn">${opt.name}</a>`;
                     });
@@ -70,6 +68,29 @@
                 container.innerHTML += html;
             });
         }
+
+        // FUNZIONI AGGIUNTA
+        function addTopic() {
+            const name = prompt("Nome del nuovo Topic:");
+            if(name) { data.topics.push({ name, subsections: [] }); render(); }
+        }
+
+        function addSub(tIdx) {
+            const name = prompt("Nome della Sub-section:");
+            if(name) { data.topics[tIdx].subsections.push({ name, options: [] }); render(); }
+        }
+
+        function addOption(tIdx, sIdx) {
+            const name = prompt("Nome Opzione (es. IBKR):");
+            const url = prompt("URL o nome file (es. https://... o pac.pdf):");
+            if(name && url) { data.topics[tIdx].subsections[sIdx].options.push({ name, url }); render(); }
+        }
+
+        function exportData() {
+            console.log(JSON.stringify(data, null, 2));
+            alert("Configurazione copiata in console. Incolla il JSON nel codice per rendere le modifiche permanenti.");
+        }
+
         render();
     </script>
 </body>
