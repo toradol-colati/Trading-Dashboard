@@ -87,9 +87,21 @@
         }
 
         function exportData() {
-            console.log(JSON.stringify(data, null, 2));
-            alert("Configurazione copiata in console. Incolla il JSON nel codice per rendere le modifiche permanenti.");
-        }
+            const jsonData = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonData], {type: 'text/plain'});
+            const textArea = document.createElement("textarea");
+            textArea.value = jsonData;
+            textArea.style.width = "100%";
+            textArea.style.height = "200px";
+            textArea.style.marginTop = "20px";
+            textArea.style.background = "#222";
+            textArea.style.color = "#00ff41";
+    
+            const container = document.getElementById('main-container');
+            container.prepend(textArea);
+            alert("Copia il codice apparso in alto e incollalo nella variabile 'data' su GitHub.");
+         }
+
 
         render();
     </script>
