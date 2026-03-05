@@ -28,52 +28,185 @@
     </div>
 <script>
     let data = {
-      "topics": [
-        { "name": "algo-trading", "subsections": [] },
-        { "name": "e-cademics", "subsections": [] },
-        { "name": "pac savings", "subsections": [] },
+  "topics": [
+    {
+      "name": "algo-trading",
+      "subsections": [
         {
-          "name": "news",
-          "subsections": [
+          "name": "dal web",
+          "options": []
+        },
+        {
+          "name": "my researches and papers",
+          "options": []
+        }
+      ]
+    },
+    {
+      "name": "e-cademics",
+      "subsections": [
+        {
+          "name": "e-courses",
+          "options": []
+        },
+        {
+          "name": "files&manuals",
+          "options": []
+        },
+        {
+          "name": "my own reseaerches n shit",
+          "options": []
+        }
+      ]
+    },
+    {
+      "name": "pac savings",
+      "subsections": []
+    },
+    {
+      "name": "news",
+      "subsections": [
+        {
+          "name": "crypto",
+          "options": [
             {
-              "name": "crypto",
-              "options": [
-                { "name": "cryptopanic", "url": "https://cryptopanic.com/" },
-                { "name": "CoinTelegraph", "url": "https://it.cointelegraph.com/" },
-                { "name": "CoinMarketCap", "url": "https://coinmarketcap.com/" }
-              ]
+              "name": "cryptopanic",
+              "url": "https://cryptopanic.com/"
             },
             {
-              "name": "General",
-              "options": [ { "name": "Bloomberg", "url": "https://www.bloomberg.com/europe" } ]
+              "name": "CoinTelegraph",
+              "url": "https://it.cointelegraph.com/"
+            },
+            {
+              "name": "CoinMarketCap",
+              "url": "https://coinmarketcap.com/"
+            },
+            {
+              "name": "CoinDesk",
+              "url": "https://www.coindesk.com/it"
+            },
+            {
+              "name": "TheBlock",
+              "url": "https://www.theblock.co/"
             }
           ]
         },
-        { "name": "chart analysis", "subsections": [] },
         {
-          "name": "brokers",
-          "subsections": [
+          "name": "General",
+          "options": [
             {
-              "name": "Active",
-              "options": [
-                { "name": "Robinhood", "url": "https://robinhood.com/eu/it/" },
-                { "name": "YngPlatform", "url": "https://youngplatform.com/" },
-                { "name": "IBKR", "url": "https://www.interactivebrokers.com/" }
-              ]
+              "name": "Bloomberg",
+              "url": "https://www.bloomberg.com/europe"
             },
             {
-              "name": "Non-active",
-              "options": [
-                { "name": "Coinbase", "url": "https://login.coinbase.com/signin" },
-                { "name": "Binance", "url": "https://www.binance.com/it" },
-                { "name": "YouHodler", "url": "https://www.youhodler.com/it" },
-                { "name": "TradeRepublic", "url": "https://traderepublic.com/it-it" }
-              ]
+              "name": "FinancialTimes",
+              "url": "https://www.ft.com/"
+            },
+            {
+              "name": "Reuters",
+              "url": "https://www.reuters.com/"
+            },
+            {
+              "name": "ilSole24ore",
+              "url": "https://www.ilsole24ore.com/"
             }
           ]
         }
       ]
-    };
+    },
+    {
+      "name": "chart analysis",
+      "subsections": [
+        {
+          "name": "crypto",
+          "options": [
+            {
+              "name": "BTCEUR (tradingview)",
+              "url": "https://it.tradingview.com/chart/R4T4rycM/?symbol=COINBASE%3ABTCEUR"
+            },
+            {
+              "name": "Glassnode",
+              "url": "https://studio.glassnode.com/"
+            },
+            {
+              "name": "Messari",
+              "url": "https://messari.io/"
+            }
+          ]
+        },
+        {
+          "name": "brokers",
+          "options": [
+            {
+              "name": "DexScreener",
+              "url": "https://dexscreener.com/"
+            }
+          ]
+        },
+        {
+          "name": "General",
+          "options": [
+            {
+              "name": "MacroMicro",
+              "url": "https://en.macromicro.me/macro/us"
+            },
+            {
+              "name": "TradingEconomics",
+              "url": "https://tradingeconomics.com/"
+            },
+            {
+              "name": "FRED",
+              "url": "https://fred.stlouisfed.org/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "brokers",
+      "subsections": [
+        {
+          "name": "Active",
+          "options": [
+            {
+              "name": "Robinhood",
+              "url": "https://robinhood.com/eu/it/"
+            },
+            {
+              "name": "YngPlatform",
+              "url": "https://youngplatform.com/"
+            },
+            {
+              "name": "IBKR",
+              "url": "https://www.interactivebrokers.com/"
+            }
+          ]
+        },
+        {
+          "name": "Non-active",
+          "options": [
+            {
+              "name": "Coinbase",
+              "url": "https://login.coinbase.com/signin"
+            },
+            {
+              "name": "Binance",
+              "url": "https://www.binance.com/it"
+            },
+            {
+              "name": "YouHodler",
+              "url": "https://www.youhodler.com/it"
+            },
+            {
+              "name": "TradeRepublic",
+              "url": "https://traderepublic.com/it-it"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
 
     function render() {
         const container = document.getElementById('main-container');
