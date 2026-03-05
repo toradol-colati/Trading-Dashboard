@@ -31,21 +31,44 @@
     <script>
         // DATI INIZIALI (Modifica questi per personalizzare la base)
         let data = {
-            topics: [
-                {
-                    name: "Analisi Mercati",
-                    subsections: [
-                        {
-                            name: "Grafici Realtime",
-                            options: [
-                                { name: "TV Bitcoin", url: "https://it.tradingview.com" },
-                                { name: "Order Flow", url: "https://bookmap.com" }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
+            {
+  "topics": [
+    {
+      "name": "Analisi Mercati",
+      "subsections": [
+        {
+          "name": "Grafici Realtime",
+          "options": [
+            {
+              "name": "TV Bitcoin",
+              "url": "https://it.tradingview.com"
+            },
+            {
+              "name": "Order Flow",
+              "url": "https://bookmap.com"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "algo-trading",
+      "subsections": []
+    },
+    {
+      "name": "e-cademics",
+      "subsections": []
+    },
+    {
+      "name": "pac savings",
+      "subsections": []
+    },
+    {
+      "name": "news",
+      "subsections": []
+    }
+  ]
+}
 
         function render() {
             const container = document.getElementById('main-container');
