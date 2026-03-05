@@ -2,186 +2,137 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>U.G.T. Advanced Command</title>
     <style>
         :root { --bg: #050505; --accent: #00ff41; --text: #e0e0e0; --card: #111; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 20px; }
-        .topic { margin-bottom: 40px; border-left: 3px solid var(--accent); padding-left: 20px; position: relative; }
-        .topic-title { font-size: 1.6rem; text-transform: uppercase; color: var(--accent); margin-bottom: 15px; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 20px; margin: 0; }
+        #main-container { padding-bottom: 120px; }
+        .topic { margin-bottom: 40px; border-left: 3px solid var(--accent); padding-left: 20px; }
+        .topic-title { font-size: 1.6rem; text-transform: uppercase; color: var(--accent); margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
         .sub-section { margin-left: 25px; margin-bottom: 25px; border-bottom: 1px solid #222; padding-bottom: 10px; }
-        .sub-title { font-size: 1.1rem; color: #888; margin-bottom: 10px; display: flex; align-items: center; }
+        .sub-title { font-size: 1.1rem; color: #888; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
         .option-btn { background: var(--card); border: 1px solid #333; color: white; padding: 15px; text-decoration: none; border-radius: 4px; text-align: center; font-size: 0.9rem; transition: 0.2s; }
         .option-btn:hover { border-color: var(--accent); background: #1a1a1a; }
-        
-        /* UI di Editing */
-        .add-btn { background: #222; color: var(--accent); border: 1px dashed var(--accent); padding: 5px 10px; cursor: pointer; margin-left: 10px; font-size: 0.8rem; border-radius: 3px; }
-        .add-btn:hover { background: var(--accent); color: black; }
-        .controls { position: fixed; bottom: 20px; right: 20px; background: #111; padding: 10px; border: 1px solid var(--accent); border-radius: 5px; }
+        .add-btn { background: #1a1a1a; color: var(--accent); border: 1px dashed var(--accent); padding: 5px 10px; cursor: pointer; font-size: 0.7rem; border-radius: 3px; }
+        .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #000; padding: 15px; border-top: 1px solid #333; display: flex; gap: 10px; justify-content: center; z-index: 100; }
+        textarea { width: 100%; height: 150px; background: #000; color: var(--accent); border: 1px solid var(--accent); margin-top: 10px; font-family: monospace; }
     </style>
 </head>
 <body>
-    <div id="main-container"></div>
+
+    <div id="main-container">Caricamento Hub...</div>
 
     <div class="controls">
         <button class="add-btn" onclick="addTopic()">+ NUOVO TOPIC</button>
         <button class="add-btn" style="border-color: #ff9800; color: #ff9800;" onclick="exportData()">SALVA CONFIG</button>
     </div>
 
-    <script>
-        // DATI INIZIALI (Modifica questi per personalizzare la base)
-        let data = {
-  "topics": [
-    {
-      "name": "algo-trading",
-      "subsections": []
-    },
-    {
-      "name": "e-cademics",
-      "subsections": []
-    },
-    {
-      "name": "pac savings",
-      "subsections": []
-    },
-    {
-      "name": "news",
-      "subsections": [
+<script>
+    // DATA CORE - Struttura corretta con i tuoi link
+    let data = {
+      "topics": [
+        { "name": "algo-trading", "subsections": [] },
+        { "name": "e-cademics", "subsections": [] },
+        { "name": "pac savings", "subsections": [] },
         {
-          "name": "crypto",
-          "options": [
+          "name": "news",
+          "subsections": [
             {
-              "name": "cryptopanic",
-              "url": "https://cryptopanic.com/"
+              "name": "crypto",
+              "options": [
+                { "name": "cryptopanic", "url": "https://cryptopanic.com/" },
+                { "name": "CoinTelegraph", "url": "https://it.cointelegraph.com/" },
+                { "name": "CoinMarketCap", "url": "https://coinmarketcap.com/" }
+              ]
             },
             {
-              "name": "CoinTelegraph",
-              "url": "https://it.cointelegraph.com/"
-            },
-            {
-              "name": "CoinMarketCap",
-              "url": "https://coinmarketcap.com/"
+              "name": "General",
+              "options": [
+                { "name": "Bloomberg", "url": "https://www.bloomberg.com/europe" }
+              ]
             }
           ]
         },
+        { "name": "chart analysis", "subsections": [] },
         {
-          "name": "General",
-          "options": [
+          "name": "brokers",
+          "subsections": [
             {
-              "name": "Bloomberg",
-              "url": "https://www.bloomberg.com/europe"
+              "name": "Active",
+              "options": [
+                { "name": "Robinhood", "url": "https://robinhood.com/eu/it/" },
+                { "name": "YngPlatform", "url": "https://youngplatform.com/" },
+                { "name": "IBKR", "url": "https://www.interactivebrokers.com/" }
+              ]
+            },
+            {
+              "name": "Non-active",
+              "options": [
+                { "name": "Coinbase", "url": "https://login.coinbase.com/signin" },
+                { "name": "Binance", "url": "https://www.binance.com/it" },
+                { "name": "YouHodler", "url": "https://www.youhodler.com/it" },
+                { "name": "TradeRepublic", "url": "https://traderepublic.com/it-it" }
+              ]
             }
           ]
         }
       ]
-    },
-    {
-      "name": "chart analysis",
-      "subsections": []
-    },
-    {
-      "name": "brokers",
-      "subsections": [
-        {
-          "name": "Active",
-          "options": [
-            {
-              "name": "Robinhood",
-              "url": "https://robinhood.com/eu/it/"
-            },
-            {
-              "name": "YngPlatform",
-              "url": "https://youngplatform.com/"
-            },
-            {
-              "name": "IBKR",
-              "url": "https://www.interactivebrokers.com/"
-            }
-          ]
-        },
-        {
-          "name": "Non-active",
-          "options": [
-            {
-              "name": "Coinbase",
-              "url": "https://login.coinbase.com/signin?client_id=258660e1-9cfe-4202-9eda-d3beedb3e118&oauth_challenge=8c6d571c-fefd-4f38-9130-b07913efb814"
-            },
-            {
-              "name": "Binance",
-              "url": "https://www.binance.com/it"
-            },
-            {
-              "name": "YouHodler",
-              "url": "https://www.youhodler.com/it"
-            },
-            {
-              "name": "TradeRepublic",
-              "url": "https://traderepublic.com/it-it"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+    };
 
-        function render() {
-            const container = document.getElementById('main-container');
-            container.innerHTML = '';
-            data.topics.forEach((topic, tIdx) => {
-                let html = `<div class="topic">
-                    <div class="topic-title">${topic.name}</div>
-                    <button class="add-btn" onclick="addSub(${tIdx})">+ SUB-SECTION</button>`;
+    function render() {
+        const container = document.getElementById('main-container');
+        container.innerHTML = '';
+        data.topics.forEach((topic, tIdx) => {
+            let topicDiv = document.createElement('div');
+            topicDiv.className = 'topic';
+            topicDiv.innerHTML = `<div class="topic-title"><span>${topic.name}</span> <button class="add-btn" onclick="addSub(${tIdx})">+ SUB</button></div>`;
+            
+            topic.subsections.forEach((sub, sIdx) => {
+                let subDiv = document.createElement('div');
+                subDiv.className = 'sub-section';
+                subDiv.innerHTML = `<div class="sub-title"><span>${sub.name}</span> <button class="add-btn" onclick="addOption(${tIdx}, ${sIdx})">+ OPT</button></div>`;
                 
-                topic.subsections.forEach((sub, sIdx) => {
-                    html += `<div class="sub-section">
-                        <div class="sub-title">${sub.name} <button class="add-btn" onclick="addOption(${tIdx}, ${sIdx})">+ OPZIONE</button></div>
-                        <div class="grid">`;
+                let grid = document.createElement('div');
+                grid.className = 'grid';
+                if (sub.options) {
                     sub.options.forEach(opt => {
-                        html += `<a href="${opt.url}" target="_blank" class="option-btn">${opt.name}</a>`;
+                        grid.innerHTML += `<a href="${opt.url}" target="_blank" class="option-btn">${opt.name}</a>`;
                     });
-                    html += `</div></div>`;
-                });
-                html += `</div>`;
-                container.innerHTML += html;
+                }
+                subDiv.appendChild(grid);
+                topicDiv.appendChild(subDiv);
             });
-        }
+            container.appendChild(topicDiv);
+        });
+    }
 
-        // FUNZIONI AGGIUNTA
-        function addTopic() {
-            const name = prompt("Nome del nuovo Topic:");
-            if(name) { data.topics.push({ name, subsections: [] }); render(); }
-        }
+    function addTopic() {
+        const name = prompt("Nome del nuovo Topic:");
+        if(name) { data.topics.push({ name, subsections: [] }); render(); }
+    }
 
-        function addSub(tIdx) {
-            const name = prompt("Nome della Sub-section:");
-            if(name) { data.topics[tIdx].subsections.push({ name, options: [] }); render(); }
-        }
+    function addSub(tIdx) {
+        const name = prompt("Nome della Sub-section:");
+        if(name) { data.topics[tIdx].subsections.push({ name, options: [] }); render(); }
+    }
 
-        function addOption(tIdx, sIdx) {
-            const name = prompt("Nome Opzione (es. IBKR):");
-            const url = prompt("URL o nome file (es. https://... o pac.pdf):");
-            if(name && url) { data.topics[tIdx].subsections[sIdx].options.push({ name, url }); render(); }
-        }
+    function addOption(tIdx, sIdx) {
+        const name = prompt("Nome Opzione:");
+        const url = prompt("URL o nome file:");
+        if(name && url) { data.topics[tIdx].subsections[sIdx].options.push({ name, url }); render(); }
+    }
 
-        function exportData() {
-            const jsonData = JSON.stringify(data, null, 2);
-            const blob = new Blob([jsonData], {type: 'text/plain'});
-            const textArea = document.createElement("textarea");
-            textArea.value = jsonData;
-            textArea.style.width = "100%";
-            textArea.style.height = "200px";
-            textArea.style.marginTop = "20px";
-            textArea.style.background = "#222";
-            textArea.style.color = "#00ff41";
-    
-            const container = document.getElementById('main-container');
-            container.prepend(textArea);
-            alert("Copia il codice apparso in alto e incollalo nella variabile 'data' su GitHub.");
-         }
+    function exportData() {
+        const jsonData = JSON.stringify(data, null, 2);
+        const area = document.createElement("textarea");
+        area.value = jsonData;
+        document.getElementById('main-container').prepend(area);
+        alert("Copia il codice apparso e incollalo nella variabile 'data' su GitHub.");
+    }
 
-
-        render();
-    </script>
+    render();
+</script>
 </body>
 </html>
