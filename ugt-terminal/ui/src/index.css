@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #121212;
+  --bg-tertiary: #1a1a1a;
+  
+  --accent-primary: #00ff41; /* Neo-Matrix Green */
+  --accent-secondary: #00d4ff; /* Cyber Blue */
+  
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-dim: #606060;
+  
+  --border-color: #2a2a2a;
+  --danger: #ff3e3e;
+  --warning: #ffb800;
+  
+  --font-main: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  margin: 0;
+  overflow: hidden; /* Terminal feel */
+}
+
+/* Rigid Grid System */
+.terminal-grid {
+  display: grid;
+  gap: 1px; /* Matrix-like spacing */
+  background-color: var(--border-color);
+  border: 1px solid var(--border-color);
+}
+
+.terminal-card {
+  background-color: var(--bg-secondary);
+  padding: 1rem;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.terminal-card:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+}
+
+/* Typography Overrides */
+h1, h2, h3 {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+/* Animations */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.cursor-blink {
+  display: inline-block;
+  width: 8px;
+  height: 1.2em;
+  background-color: var(--accent-primary);
+  animation: blink 1s step-end infinite;
+}

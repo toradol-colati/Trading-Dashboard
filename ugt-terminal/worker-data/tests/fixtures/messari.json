@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "metrics": {
+        "market_data": {
+          "price_usd": 65000.0,
+          "real_volume_last_24_hours": 15000000000.0
+        },
+        "marketcap": {
+          "marketcap_dominance_percent": 52.1
+        }
+      }
+    }
+  ]
+}

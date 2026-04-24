@@ -1,0 +1,12 @@
+{
+  "calendar": [
+    {
+      "Event": "Interest Rate Decision",
+      "Country": "United States",
+      "Actual": "5.5%",
+      "Previous": "5.5%",
+      "Forecast": "5.5%",
+      "Importance": 3
+    }
+  ]
+}

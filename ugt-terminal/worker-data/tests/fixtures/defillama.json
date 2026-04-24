@@ -1,0 +1,22 @@
+{
+  "global_tvl": {
+    "date": 1700000000,
+    "totalLiquidityUSD": 50000000000.0
+  },
+  "top_protocols": [
+    {
+      "name": "Lido",
+      "chain": "Ethereum",
+      "tvl": 20000000000.0,
+      "slug": "lido",
+      "change_24h": -1.2
+    },
+    {
+      "name": "MakerDAO",
+      "chain": "Ethereum",
+      "tvl": 8000000000.0,
+      "slug": "makerdao",
+      "change_24h": 0.5
+    }
+  ]
+}

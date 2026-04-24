@@ -1,0 +1,10 @@
+# Dune Analytics Queries Configuration
+# 
+# Schema:
+# queries:
+#   - query_id: 123456
+#     name: "TVL Total"
+#     params: {}
+#     interval_seconds: 3600
+#
+queries: []

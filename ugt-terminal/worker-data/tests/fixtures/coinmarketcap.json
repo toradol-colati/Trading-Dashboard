@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "quote": {
+        "USD": {
+          "price": 65000.0,
+          "market_cap": 1200000000000.0,
+          "percent_change_24h": 2.5
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "results": [
+    {
+      "query_name": "Active Addresses",
+      "data": [
+        { "date": "2024-03-01", "count": 1000000 }
+      ]
+    }
+  ]
+}

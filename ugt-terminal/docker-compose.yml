@@ -1,0 +1,134 @@
+version: "3.9"
+
+x-common-env: &common-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql://ugt:changeme@postgres:5432/ugt_terminal}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ugt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-ugt_terminal}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ugt -d ugt_terminal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      NODE_ENV: production
+      KEK_PATH: /run/secrets/kek.bin
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:3001:3001"
+    secrets:
+      - kek.bin
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  worker-data:
+    build: ./worker-data
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      CMC_API_KEY: ${CMC_API_KEY:-}
+      FRED_API_KEY: ${FRED_API_KEY:-}
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      CONTROL_PORT: "8001"
+    volumes:
+      - ms-playwright:/ms-playwright
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker-nlp:
+    build: ./worker-nlp
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      HF_HOME: /hf-models
+      CONTROL_PORT: "8002"
+    volumes:
+      - hf-models:/hf-models
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  worker-broker:
+    build: ./worker-broker
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      KEK_PATH: /run/secrets/kek.bin
+      CONTROL_PORT: "8003"
+    secrets:
+      - kek.bin
+      - robinhood.pickle
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ui:
+    build: ./ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      api: { condition: service_healthy }
+
+secrets:
+  kek.bin:
+    file: ./secrets/kek.bin
+  robinhood.pickle:
+    file: ./secrets/robinhood.pickle
+
+volumes:
+  pgdata:
+  redisdata:
+  hf-models:
+  ms-playwright:

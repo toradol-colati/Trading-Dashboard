@@ -1,0 +1,6 @@
+{
+  "observations": {
+    "CPIAUCSL": { "date": "2024-03-01", "value": "310.5" },
+    "FEDFUNDS": { "date": "2024-03-01", "value": "5.33" }
+  }
+}

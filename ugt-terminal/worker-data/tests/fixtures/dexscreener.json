@@ -1,0 +1,13 @@
+{
+  "pairs": [
+    {
+      "chainId": "ethereum",
+      "dexId": "uniswap",
+      "baseToken": { "symbol": "WETH" },
+      "quoteToken": { "symbol": "USDC" },
+      "priceUsd": "2500.50",
+      "volume": { "h24": 150000000.0 },
+      "liquidity": { "usd": 50000000.0 }
+    }
+  ]
+}
