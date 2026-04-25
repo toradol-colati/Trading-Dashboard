@@ -36,10 +36,14 @@ class NewsScheduler:
         self.scheduler = AsyncIOScheduler()
         self.running = False
         self.active_ingestors = {}
+        self.articles_processed = 0
+
+        redis_url = os.getenv("REDIS_URL", "redis://127.0.0.1:6379")
+        database_url = os.getenv("DATABASE_URL", "postgresql://ugt:changeme@127.0.0.1:5432/ugt_terminal")
         
-        self.redis_sink = RedisStreamSink(os.getenv("REDIS_URL", "redis://redis:6379"))
-        self.db_sink = TimescaleSink(os.getenv("DATABASE_URL"))
-        self.redis_conn = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379"))
+        self.redis_sink = RedisStreamSink(redis_url)
+        self.db_sink = TimescaleSink(database_url)
+        self.redis_conn = redis.from_url(redis_url)
         
         self.ner = TickerNER()
         self.finbert = FinBERTPipeline()
@@ -97,6 +101,7 @@ class NewsScheduler:
         # Persist
         await self.db_sink.write_article(article, sentiment)
         await self.redis_sink.write_news(article, sentiment)
+        self.articles_processed += 1
         
         # Z-Score
         for ticker in tickers:

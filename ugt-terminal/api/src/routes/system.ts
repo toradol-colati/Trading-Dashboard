@@ -34,7 +34,7 @@ const systemRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         }
       };
     } catch (err: any) {
-      server.log.error(err);
+      fastify.log.error(err);
       return reply.status(500).send({ 
         status: 'ERROR', 
         error: err?.message || 'Internal Server Error',

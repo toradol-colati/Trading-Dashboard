@@ -30,7 +30,17 @@ const pricesRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     }
 
     const { query } = await import('../db/pool.js');
-    const res = await query(sql, params);
+    const sym = symbol || 'BTCEUR';
+    const res = await query(
+      `
+        SELECT symbol, price, volume, time
+        FROM price_ticks
+        WHERE symbol = $1
+        ORDER BY time DESC
+        LIMIT $2
+      `,
+      [sym, limit],
+    );
     return res.rows;
   });
 

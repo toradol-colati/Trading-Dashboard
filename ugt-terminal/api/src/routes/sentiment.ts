@@ -42,9 +42,9 @@ const sentimentRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
     
     // Calculate divergence in-situ or rely on table? 
     // Spec says divergence is z_crypto - z_tradfi.
-    const rows = res.rows.map(r => ({
+    const rows = res.rows.map((r: Record<string, number | string | null>) => ({
       ...r,
-      divergence: (r.z_crypto || 0) - (r.z_tradfi || 0)
+      divergence: Number(r.z_crypto || 0) - Number(r.z_tradfi || 0)
     }));
     
     return rows;

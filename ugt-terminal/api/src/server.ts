@@ -61,19 +61,19 @@ const start = async () => {
     if (!isMock) {
       console.log('Running migrations...');
       try {
-        await migrate.default({
-          databaseUrlVar: 'DATABASE_URL',
-          migrationsDir: 'src/db/migrations',
+        await migrate({
+          databaseUrl: process.env.DATABASE_URL as string,
+          migrationsTable: 'pgmigrations',
+          dir: 'src/db/migrations',
           direction: 'up',
           count: Infinity,
           ignorePattern: '.*',
-          migrationFileLanguage: 'sql',
         });
       } catch (migrateErr) {
-        console.error('⚠️ Critical: Migrations failed. Continuing in degraded mode.');
+        console.error('[WARN] Critical: Migrations failed. Continuing in degraded mode.');
       }
     } else {
-      console.log('⏩ Skipping migrations (MOCK_MODE)');
+      console.log('Skipping migrations (MOCK_MODE)');
     }
 
     // 2. Bootstrap KEK

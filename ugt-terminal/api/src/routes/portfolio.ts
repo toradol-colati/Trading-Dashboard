@@ -18,7 +18,17 @@ const portfolioRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
     }
 
     const { query } = await import('../db/pool.js');
-    const res = await query(sql);
+    const res = await query(`
+      SELECT
+        symbol,
+        SUM(quantity)::text AS total_quantity,
+        COALESCE(AVG(avg_cost_basis), 0)::text AS avg_cost,
+        MIN(currency) AS currency,
+        MIN(asset_class) AS asset_class
+      FROM portfolio_holdings
+      GROUP BY symbol
+      ORDER BY symbol ASC
+    `);
     return res.rows;
   });
 
