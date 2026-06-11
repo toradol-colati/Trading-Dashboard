@@ -3,10 +3,12 @@ from typing import List, Set
 
 class TickerNER:
     def __init__(self):
-        # Whitelist top tokens/indices
+        # Whitelist: aligned with dashboard watchlist + common majors / indices
         self.whitelist = {
-            "BTC", "ETH", "SOL", "XRP", "BNB", "ADA", "DOGE", "AVAX", "DOT", "LINK",
-            "SPX", "NDX", "TSLA", "AAPL", "NVDA", "EUR", "USD", "JPY", "GBP"
+            "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "ADA", "DOGE", "AVAX", "DOT", "LINK",
+            "SPX", "NDX", "NASDAQ", "TSLA", "AAPL", "NVDA",
+            "DXY", "EURUSD", "GOLD",
+            "EUR", "USD", "JPY", "GBP",
         }
         # Regex for cashtags: $BTC, $ETH
         self.cashtag_regex = re.compile(r'\$([A-Z]{2,6})\b')
@@ -15,7 +17,18 @@ class TickerNER:
             "bitcoin": "BTC",
             "ether": "ETH",
             "ethereum": "ETH",
-            "solana": "SOL"
+            "solana": "SOL",
+            "sui": "SUI",
+            "nasdaq": "NASDAQ",
+            "s&p 500": "SPX",
+            "s&p500": "SPX",
+            "sp500": "SPX",
+            "dollar index": "DXY",
+            "euro/dollar": "EURUSD",
+            "eur/usd": "EURUSD",
+            "gold": "GOLD",
+            "xau": "GOLD",
+            "xauusd": "GOLD",
         }
 
     def extract(self, text: str) -> List[str]:

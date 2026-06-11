@@ -5,9 +5,11 @@ from typing import List, Any, Dict
 from ..base import AsyncSource, NormalizedRecord, SourceQuality
 
 class FredClient(AsyncSource):
-    def __init__(self, series_ids: List[str]):
+    DEFAULT_SERIES = ["CPIAUCSL", "FEDFUNDS", "DGS10", "UNRATE"]
+
+    def __init__(self, series_ids: List[str] | None = None):
         super().__init__("fred")
-        self.series_ids = series_ids # e.g. ["CPIAUCSL", "FEDFUNDS"]
+        self.series_ids = series_ids or self.DEFAULT_SERIES
         self.api_key = os.getenv("FRED_API_KEY")
         self.base_url = "https://api.stlouisfed.org/fred/series/observations"
 

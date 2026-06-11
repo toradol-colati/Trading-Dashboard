@@ -3,27 +3,26 @@ import { query } from '../db/pool.js';
 import { z } from 'zod';
 
 const pacRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
-  // GET /api/pac/plans
+  fastify.get('/plans', async () => {
     const { isMock } = await import('../db/pool.js');
     if (isMock) {
       return [
-        { 
-          id: 1, 
-          label: "Crypto Core", 
-          target_allocation_json: { "BTC": 0.6, "ETH": 0.4 }, 
-          contribution_amount: 500.0, 
-          contribution_currency: "EUR", 
-          frequency: "monthly", 
-          next_execution_date: new Date(Date.now() + 864000000).toISOString() 
-        }
+        {
+          id: 1,
+          label: 'Crypto Core',
+          target_allocation_json: { BTC: 0.6, ETH: 0.4 },
+          contribution_amount: 500.0,
+          contribution_currency: 'EUR',
+          frequency: 'monthly',
+          next_execution_date: new Date(Date.now() + 864000000).toISOString(),
+        },
       ];
     }
 
-    const { query } = await import('../db/pool.js');
     const res = await query('SELECT * FROM pac_plans ORDER BY next_execution_date');
     return res.rows;
+  });
 
-  // POST /api/pac/plans
   fastify.post('/plans', async (request, reply) => {
     const bodySchema = z.object({
       label: z.string(),

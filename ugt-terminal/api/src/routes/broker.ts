@@ -26,34 +26,33 @@ const brokerRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
 
     const { broker_code, label, api_key, api_secret, api_passphrase } = parsed.data;
 
-    // Encrypt each field using KEK
+    // Encrypt each field independently — AES-256-GCM requires unique nonce per encryption
     const encryptedKey = await encrypt(api_key);
     const encryptedSecret = api_secret ? await encrypt(api_secret) : null;
     const encryptedPass = api_passphrase ? await encrypt(api_passphrase) : null;
 
-    // We take the nonce/tag from the api_key encryption to satisfy schema single nonce/tag cols 
-    // OR ideally we should have nonce/tag per field. 
-    // The schema provided had ONE nonce and ONE tag column. 
-    // Correction: AES-GCM needs unique nonce per encryption.
-    // For simplicity with the provided schema, we'll store the nonce/tag of the main key 
-    // but in a production scenario we'd need them for each.
-    // I will use the nonce/tag from the primary key for the whole record as a compromise 
-    // for the provided schema, but use unique nonces in memory. 
-    // Actually, I'll concatenated tag/nonce or just use the first one's tag/nonce and assume same kek.
-    // Let's stick to the schema: nonce and tag belong to the encrypted fields.
-
     const res = await query(`
-      INSERT INTO broker_accounts (broker_code, label, api_key_ciphertext, api_secret_ciphertext, api_passphrase_ciphertext, nonce, tag, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+      INSERT INTO broker_accounts (
+        broker_code, label,
+        api_key_ciphertext, api_key_nonce, api_key_tag,
+        api_secret_ciphertext, api_secret_nonce, api_secret_tag,
+        api_passphrase_ciphertext, api_passphrase_nonce, api_passphrase_tag,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'active')
       RETURNING id, broker_code, label, status
     `, [
       broker_code, 
       label, 
       encryptedKey.ciphertext, 
-      encryptedSecret?.ciphertext, 
-      encryptedPass?.ciphertext, 
       encryptedKey.nonce, 
-      encryptedKey.tag
+      encryptedKey.tag,
+      encryptedSecret?.ciphertext ?? null, 
+      encryptedSecret?.nonce ?? null, 
+      encryptedSecret?.tag ?? null,
+      encryptedPass?.ciphertext ?? null, 
+      encryptedPass?.nonce ?? null, 
+      encryptedPass?.tag ?? null
     ]);
 
     return res.rows[0];

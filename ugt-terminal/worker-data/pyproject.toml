@@ -12,7 +12,8 @@ dependencies = [
     "apscheduler>=3.10.0",
     "pybreaker>=1.0.0",
     "structlog>=23.1.0",
-    "pydantic-settings>=2.0.0"
+    "pydantic-settings>=2.0.0",
+    "PyYAML>=6.0"
 ]
 
 [project.optional-dependencies]

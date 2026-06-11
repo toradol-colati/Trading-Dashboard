@@ -17,7 +17,7 @@ export const NEWS_SECTION_CONFIG = [
   { code: 'commodities', label: 'Materie prime' },
   { code: 'equities', label: 'Azioni' },
   { code: 'extreme_sentiment', label: 'Sentiment estremo + autorevolezza' },
-  { code: 'urgency', label: 'Urgenza/novita temporale' },
+  { code: 'urgency', label: 'Urgenza/novità temporale' },
   { code: 'keyword_specific', label: 'Keyword specifiche' },
 ] as const;
 
@@ -152,6 +152,11 @@ export const HIGH_CREDIBILITY_SOURCES = new Set([
   'FT',
   'THEBLOCK',
   'COINDESK',
+  'COINTELEGRAPH',
+  'CRYPTOPANIC',
   'ILSOLE24ORE',
 ]);
+
+/** Minimum section score to appear in a themed section (RSS/mock tuning). */
+export const SECTION_SCORE_MIN_VISIBLE = 2.05;
 

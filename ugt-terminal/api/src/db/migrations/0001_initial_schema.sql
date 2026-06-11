@@ -44,12 +44,16 @@ CREATE TABLE broker_accounts (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     broker_code     broker_code_enum NOT NULL,
     label           TEXT NOT NULL,
-    -- Encrypted credential fields (AES-256-GCM)
+    -- Encrypted credential fields (AES-256-GCM, each with own nonce+tag)
     api_key_ciphertext      BYTEA,
+    api_key_nonce           BYTEA,
+    api_key_tag             BYTEA,
     api_secret_ciphertext   BYTEA,
+    api_secret_nonce        BYTEA,
+    api_secret_tag          BYTEA,
     api_passphrase_ciphertext BYTEA,
-    nonce           BYTEA NOT NULL,
-    tag             BYTEA NOT NULL,
+    api_passphrase_nonce    BYTEA,
+    api_passphrase_tag      BYTEA,
     -- Metadata
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_sync_at    TIMESTAMPTZ,

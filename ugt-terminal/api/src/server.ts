@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
@@ -6,6 +9,17 @@ import pino from 'pino';
 import { bootstrapKek } from './crypto/kek.js';
 import pool from './db/pool.js';
 import migrate from 'node-pg-migrate';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** Docker image ships SQL under dist/db/migrations; dev uses src/db/migrations. */
+function resolveMigrationsDir(): string {
+  const fromDist = join(__dirname, 'db', 'migrations');
+  if (existsSync(fromDist)) return fromDist;
+  const fromSrc = join(__dirname, '..', 'src', 'db', 'migrations');
+  if (existsSync(fromSrc)) return fromSrc;
+  return fromDist;
+}
 
 // Route imports
 import priceRoutes from './routes/prices.js';
@@ -64,10 +78,9 @@ const start = async () => {
         await migrate({
           databaseUrl: process.env.DATABASE_URL as string,
           migrationsTable: 'pgmigrations',
-          dir: 'src/db/migrations',
+          dir: resolveMigrationsDir(),
           direction: 'up',
           count: Infinity,
-          ignorePattern: '.*',
         });
       } catch (migrateErr) {
         console.error('[WARN] Critical: Migrations failed. Continuing in degraded mode.');

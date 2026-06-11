@@ -82,6 +82,7 @@ services:
     environment:
       <<: *common-env
       HF_HOME: /hf-models
+      CRYPTOPANIC_API_KEY: ${CRYPTOPANIC_API_KEY:-}
       CONTROL_PORT: "8002"
     volumes:
       - hf-models:/hf-models

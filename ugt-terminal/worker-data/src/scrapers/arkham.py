@@ -7,9 +7,9 @@ from ..base import AsyncSource, NormalizedRecord, SourceQuality
 # @fragile: Arkham scraping is highly dependent on their dashboard structure.
 # This client scrapes entity balance or volume data points based on entity IDs.
 class ArkhamScraper(AsyncSource):
-    def __init__(self, entity_id: str):
+    def __init__(self, entity_id: str = "binance"):
         super().__init__("arkham")
-        self.entity_id = entity_id # e.g. "binance"
+        self.entity_id = entity_id
         self.url = f"https://intel.arkm.com/explorer/entity/{entity_id}"
 
     async def fetch(self) -> Dict[str, Any]:

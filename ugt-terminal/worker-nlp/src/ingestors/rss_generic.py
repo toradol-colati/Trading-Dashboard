@@ -4,6 +4,9 @@ from typing import Any, Dict, List
 
 import aiohttp
 import feedparser
+import structlog
+
+logger = structlog.get_logger()
 
 
 class RSSGenericIngestor:
@@ -15,18 +18,37 @@ class RSSGenericIngestor:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         articles: List[Dict[str, Any]] = []
-        for result in results:
+        for i, result in enumerate(results):
             if isinstance(result, list):
                 articles.extend(result)
+            elif isinstance(result, BaseException):
+                feed_name = self.feeds[i].get("name", "?") if i < len(self.feeds) else "?"
+                logger.warning("rss_feed_failed", feed=feed_name, error=str(result))
         return articles
 
     async def fetch_feed(self, config: Dict[str, Any]) -> List[Dict[str, Any]]:
         timeout = aiohttp.ClientTimeout(total=25)
+        feed_name = config.get("name", "?")
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(config['url']) as resp:
+            async with session.get(config["url"]) as resp:
+                if resp.status >= 400:
+                    logger.warning(
+                        "rss_http_error",
+                        feed=feed_name,
+                        url=config["url"],
+                        status=resp.status,
+                    )
+                    return []
                 xml = await resp.text()
 
         feed = feedparser.parse(xml)
+        if feed.bozo and getattr(feed, "bozo_exception", None):
+            logger.warning(
+                "rss_parse_warning",
+                feed=feed_name,
+                url=config["url"],
+                error=str(feed.bozo_exception),
+            )
         articles = []
         for entry in feed.entries:
             published_parsed = getattr(entry, 'published_parsed', None)

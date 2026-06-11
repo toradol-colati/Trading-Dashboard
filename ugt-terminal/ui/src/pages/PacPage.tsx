@@ -5,22 +5,7 @@ import {
   CheckCircle2, 
   Clock 
 } from 'lucide-react';
-import { TerminalCard } from '../components/Shared';
-
-const StatItem = ({ label, value, unit, trend }: { label: string, value: string, unit: string, trend?: number }) => (
-  <div className="flex flex-col gap-1">
-    <span className="text-[10px] font-mono text-[#606060] uppercase">{label}</span>
-    <div className="flex items-baseline gap-2">
-      <span className="text-xl font-mono font-bold text-white">{value}</span>
-      <span className="text-[10px] font-mono text-[#606060]">{unit}</span>
-      {trend !== undefined && (
-        <span className={clsx("text-[10px] font-mono", trend >= 0 ? "text-[#00ff41]" : "text-[#ff3e3e]")}>
-          {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
-        </span>
-      )}
-    </div>
-  </div>
-);
+import { TerminalCard, StatItem } from '../components/Shared';
 
 export const PacPage = ({ isWidget }: { isWidget?: boolean }) => {
   const [plans, setPlans] = useState<any[]>([]);

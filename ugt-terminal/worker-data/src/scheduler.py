@@ -10,7 +10,7 @@ from .sinks.timescale import TimescaleSink
 
 # Clients
 from .clients.coinmarketcap import CoinMarketCapClient
-from .clients.fred import FREDClient
+from .clients.fred import FredClient
 from .clients.defillama import DefiLlamaClient
 from .clients.dexscreener import DexScreenerClient
 from .clients.dune import DuneClient
@@ -45,7 +45,7 @@ class DataScheduler:
         # 1. Instantiate Sources (7 Clients + 4 Scrapers)
         sources = [
             (CoinMarketCapClient(), 600, "market"),
-            (FREDClient(), 14400, "macro"),
+            (FredClient(), 14400, "macro"),
             (DefiLlamaClient(), 3600, "onchain"),
             (DexScreenerClient(), 300, "market"),
             (DuneClient(), 3600, "onchain"),

@@ -186,6 +186,20 @@ async function getAvailableDays(limit: number) {
   }));
 }
 
+async function getLatestArticleCalendarDay(): Promise<string | null> {
+  if (isMock) return null;
+
+  const result = await query(
+    `
+      SELECT MAX(published_at)::date::text AS day
+      FROM news_articles
+    `,
+  );
+
+  const raw = result.rows[0]?.day;
+  return raw ? String(raw) : null;
+}
+
 async function resolveDay(preferredDay?: string) {
   if (preferredDay) return preferredDay;
 
@@ -193,6 +207,9 @@ async function resolveDay(preferredDay?: string) {
   if (days.length > 0) {
     return days[0].day;
   }
+
+  const latest = await getLatestArticleCalendarDay();
+  if (latest) return latest;
 
   return formatDay(new Date());
 }
@@ -462,11 +479,20 @@ const newsRoutes: FastifyPluginAsync = async (_fastify: FastifyInstance) => {
     const parsed = intelligenceQuerySchema.safeParse(request.query);
     if (!parsed.success) return reply.status(400).send(parsed.error);
 
-    const day = await resolveDay(parsed.data.day);
-    const [watchlist, availableDays, articles, archive, preferenceSignals] = await Promise.all([
+    let day = await resolveDay(parsed.data.day);
+    let articles = await getArticlesForDay(day, parsed.data.limit);
+
+    if (!isMock && articles.length === 0 && !parsed.data.day) {
+      const latest = await getLatestArticleCalendarDay();
+      if (latest && latest !== day) {
+        day = latest;
+        articles = await getArticlesForDay(day, parsed.data.limit);
+      }
+    }
+
+    const [watchlist, availableDays, archive, preferenceSignals] = await Promise.all([
       getWatchlist(),
       getAvailableDays(30),
-      getArticlesForDay(day, parsed.data.limit),
       getArchive(50),
       getFeedbackPreferenceSignals(),
     ]);

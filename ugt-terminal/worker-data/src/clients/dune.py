@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import time
 import os
 import yaml
@@ -6,10 +7,10 @@ from typing import List, Any, Dict
 from ..base import AsyncSource, NormalizedRecord, SourceQuality
 
 class DuneClient(AsyncSource):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str | None = None):
         super().__init__("dune")
         self.api_key = os.getenv("DUNE_API_KEY")
-        self.config_path = config_path
+        self.config_path = config_path or os.getenv("DUNE_CONFIG_PATH", "config/dune_queries.yaml")
         self.base_url = "https://api.dune.com/api/v1"
 
     def _load_config(self) -> List[Dict]:

@@ -7,6 +7,7 @@ import {
   LANGUAGE_PASSTHROUGH,
   MACRO_KEYWORDS,
   NEWS_SECTION_CONFIG,
+  SECTION_SCORE_MIN_VISIBLE,
   URGENCY_KEYWORDS,
 } from '../config/news-intelligence.js';
 
@@ -106,7 +107,6 @@ const STOPWORDS = new Set([
   'will',
   'have',
   'your',
-  'into',
   'over',
   'under',
   'while',
@@ -125,12 +125,10 @@ const STOPWORDS = new Set([
   'sulle',
   'sulla',
   'dopo',
-  'dopo',
   'para',
   'sobre',
   'como',
   'desde',
-  'delle',
 ]);
 
 const SECTION_LABEL_MAP = Object.fromEntries(
@@ -296,6 +294,8 @@ function scoreArticleForSections(
     countKeywordMatches(articleText, keywords).matched.map(() => group),
   );
   const bodyLength = (article.body || '').length;
+  const titleBoost = Math.min(article.title.length, 240) * 10;
+  const effectiveTextLength = Math.min(bodyLength + titleBoost, 2800);
   const freshnessHours = Math.max(
     0,
     (Date.now() - new Date(article.published_at).getTime()) / 36e5,
@@ -308,10 +308,10 @@ function scoreArticleForSections(
     (total, ticker) => total + (context.preferenceSignals.ticker[ticker] || 0),
     0,
   );
-  const credibilityScore = HIGH_CREDIBILITY_SOURCES.has(source) ? 0.8 : 0.35;
+  const credibilityScore = HIGH_CREDIBILITY_SOURCES.has(source) ? 0.8 : 0.52;
   const baseScore =
     freshnessScore * 1.4 +
-    Math.min(bodyLength / 1400, 1) * 0.8 +
+    Math.min(effectiveTextLength / 1400, 1) * 0.8 +
     Math.abs(article.sentiment_compound) * 1.2 +
     Math.max(context.clusterSize - 1, 0) * 0.75 +
     tickerOverlap.length * 1.25 +
@@ -354,7 +354,7 @@ function scoreArticleForSections(
       baseScore + equityMatches.total * 0.9 + (context.preferenceSignals.section.equities || 0);
   }
 
-  if (Math.abs(article.sentiment_compound) >= 0.38 || context.clusterSize > 1) {
+  if (Math.abs(article.sentiment_compound) >= 0.28 || context.clusterSize > 1) {
     scores.extreme_sentiment =
       baseScore +
       Math.abs(article.sentiment_compound) * 2.1 +
@@ -445,7 +445,7 @@ export function buildIntelligenceFeed(
 
   const sections = NEWS_SECTION_CONFIG.map((section) => {
     const ranked = cards
-      .filter((card) => (card.section_scores[section.code] || 0) >= 2.6)
+      .filter((card) => (card.section_scores[section.code] || 0) >= SECTION_SCORE_MIN_VISIBLE)
       .sort((left, right) => (right.section_scores[section.code] || 0) - (left.section_scores[section.code] || 0))
       .slice(0, 12);
 

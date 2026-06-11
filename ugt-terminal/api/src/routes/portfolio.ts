@@ -59,17 +59,12 @@ const portfolioRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
     const buffer = await data.toBuffer();
     const csvContent = buffer.toString();
     
+    
     // Parse using csv-parse
     const rawRecords = parse(csvContent, { columns: true, skip_empty_lines: true });
-    
-    const crypto = await import('crypto');
     let imported = 0;
 
     for (const row of rawRecords) {
-        // Idempotency: Create hash of the raw row
-        const rowHash = crypto.createHash('sha256').update(JSON.stringify(row)).digest('hex');
-        const externalId = `${brokerCode || 'CSV'}_${rowHash}`;
-
         // Normalization based on broker
         let symbol = row.Asset || row.ISIN || row.Name || row.symbol;
         let quantity = parseFloat(row.Amount || row.Quantity || row.quantity || '0');
@@ -80,12 +75,15 @@ const portfolioRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
 
         await query(`
             INSERT INTO portfolio_holdings 
-                (broker_account_id, external_id, symbol, quantity, avg_cost_basis, currency, asset_class)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (broker_account_id, external_id) DO NOTHING
+                (broker_account_id, symbol, quantity, avg_cost_basis, currency, asset_class, last_update_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (broker_account_id, symbol) 
+            DO UPDATE SET 
+                quantity = EXCLUDED.quantity,
+                avg_cost_basis = EXCLUDED.avg_cost_basis,
+                last_update_at = NOW()
         `, [
             brokerAccountId,
-            externalId,
             symbol,
             quantity,
             avgCost,

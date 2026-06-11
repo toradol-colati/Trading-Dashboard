@@ -1,12 +1,13 @@
 import aiohttp
 import time
+import os
 from typing import List, Any, Dict
 from ..base import AsyncSource, NormalizedRecord, SourceQuality
 
 class DexScreenerClient(AsyncSource):
-    def __init__(self, watchlist_pairs: List[str]):
+    def __init__(self, watchlist_pairs: List[str] | None = None):
         super().__init__("dexscreener")
-        self.watchlist_pairs = watchlist_pairs # e.g. ["ethereum/0x..."]
+        self.watchlist_pairs = watchlist_pairs or os.getenv("DEXSCREENER_PAIRS", "").split(",") if os.getenv("DEXSCREENER_PAIRS") else []
         self.base_url = "https://api.dexscreener.com/latest/dex/pairs"
 
     async def fetch(self) -> Dict[str, Any]:

@@ -18,7 +18,7 @@ async def health():
 @app.get("/metrics")
 async def metrics():
     # In a real app we'd return actual metrics from the sources
-    return {"sources": len(scheduler.sources)}
+    return {"sources": len(scheduler.active_sources)}
 
 if __name__ == "__main__":
     port = 8001

@@ -35,26 +35,29 @@ class PACEngine:
         executed_at = datetime.now()
         target_allocation = json.loads(plan['target_allocation_json'])
         
-        # Record results
-        result_json = {
-            "target": target_allocation,
-            "status": "notified", # Since execution on brokers is usually manual or via external bot
-            "advice": self._generate_advice(plan, target_allocation)
-        }
+        # Build actual allocation (in a real scenario, this would reflect market fills)
+        actual_allocation = target_allocation  # Simulated: actual matches target
+        advice = self._generate_advice(plan, target_allocation)
         
         await conn.execute(
             """
-            INSERT INTO pac_executions (plan_id, executed_at, result_json)
-            VALUES ($1, $2, $3)
+            INSERT INTO pac_executions 
+                (plan_id, executed_at, amount, asset_allocation_actual_json, slippage_vs_plan, notes)
+            VALUES ($1, $2, $3, $4, $5, $6)
             """,
-            plan['id'], executed_at, json.dumps(result_json)
+            plan['id'], 
+            executed_at, 
+            plan['contribution_amount'],
+            json.dumps(actual_allocation),
+            0.0,  # slippage_vs_plan: 0 for simulated execution
+            advice
         )
         
         # 3. Update next execution date
         next_date = self._calculate_next_date(plan['next_execution_date'], plan['frequency'])
         await conn.execute(
-            "UPDATE pac_plans SET next_execution_date = $1, last_execution_at = $2 WHERE id = $3",
-            next_date, executed_at, plan['id']
+            "UPDATE pac_plans SET next_execution_date = $1 WHERE id = $2",
+            next_date, plan['id']
         )
         
         logger.info("pac_plan_executed", label=plan['label'], next_date=next_date)

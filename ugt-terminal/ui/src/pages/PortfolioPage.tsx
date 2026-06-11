@@ -71,7 +71,7 @@ export const PortfolioPage = ({ isWidget }: { isWidget?: boolean }) => {
       
       {isWidget && (
         <div className="flex justify-between items-center bg-neoGreen/5 p-3 border border-neoGreen/20 mb-4 rounded-sm">
-           <span className="text-[9px] font-bold text-neoGreen/60 uppercase racking-widest">NET_WORTH</span>
+           <span className="text-[9px] font-bold text-neoGreen/60 uppercase tracking-widest">NET_WORTH</span>
            <div className="text-xl font-bold text-neoGreen tracking-tighter">€{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
         </div>
       )}
