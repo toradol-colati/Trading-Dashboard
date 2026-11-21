@@ -1,6 +1,5 @@
 import { FastifyInstance } from 'fastify';
 import Redis from 'ioredis';
-import { isMock } from '../db/pool.js';
 
 const CONSUMER_GROUP = 'cg:api';
 const CONSUMER_NAME = `api-${process.pid}`;
@@ -20,15 +19,6 @@ async function isHostResolvable(host: string): Promise<boolean> {
 async function getRedis() {
   if (redisClient) return redisClient;
   
-  if (isMock) {
-    console.log('⚠️ Redis disabled (MOCK_MODE)');
-    redisClient = {
-      xgroup: async () => {},
-      xreadgroup: async () => { await new Promise(r => setTimeout(r, 1000)); return null; },
-      on: () => {}
-    };
-    return redisClient;
-  }
   
   const isRedisResolvable = await isHostResolvable('redis');
   const redisUrl = process.env.REDIS_URL || (isRedisResolvable ? 'redis://redis:6379' : 'redis://127.0.0.1:6379');

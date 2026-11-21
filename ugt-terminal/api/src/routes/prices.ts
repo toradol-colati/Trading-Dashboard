@@ -17,18 +17,6 @@ const pricesRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   }, async (request, reply) => {
     const { symbol, limit } = request.query as { symbol?: string; limit: number };
     
-    const { isMock } = await import('../db/pool.js');
-    if (isMock) {
-      const sym = symbol || 'BTCEUR';
-      const basePrice = sym.startsWith('BTC') ? 65000 : sym.startsWith('ETH') ? 3500 : 150;
-      return Array.from({ length: 50 }).map((_, i) => ({
-        symbol: sym,
-        price: basePrice + (Math.random() * 100 - 50),
-        volume: Math.random() * 5,
-        time: new Date(Date.now() - i * 10000).toISOString()
-      })).reverse();
-    }
-
     const { query } = await import('../db/pool.js');
     const sym = symbol || 'BTCEUR';
     const res = await query(

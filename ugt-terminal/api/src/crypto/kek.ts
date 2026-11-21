@@ -9,12 +9,6 @@ const KEK_PATH = process.env.KEK_PATH || DEFAULT_KEK_PATH;
 const ALGORITHM = 'aes-256-gcm';
 
 export async function bootstrapKek() {
-  const { isMock } = await import('../db/pool.js');
-  if (isMock) {
-    console.log('⏩ Skipping KEK bootstrap (MOCK_MODE)');
-    return;
-  }
-
   if (existsSync(KEK_PATH)) {
     return;
   }
@@ -32,15 +26,11 @@ export async function bootstrapKek() {
     await writeFile(KEK_PATH, kek, { mode: 0o600 });
     console.log(`✅ KEK bootstrapped at ${KEK_PATH}`);
   } catch (err: any) {
-    console.error(`⚠️ Failed to bootstrap KEK at ${KEK_PATH}: ${err.message}`);
-    console.log('Fallback: entering MOCK_MODE for crypto');
+    throw new Error(`Failed to bootstrap KEK at ${KEK_PATH}: ${err.message}`);
   }
 }
 
 async function getKek(): Promise<Buffer> {
-  const { isMock } = await import('../db/pool.js');
-  if (isMock) return Buffer.alloc(32, 'MOCK_KEY_MOCK_KEY_MOCK_KEY_MOCK_');
-
   return await readFile(KEK_PATH);
 }
 

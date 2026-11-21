@@ -50,3 +50,32 @@ export const SentimentBadge = ({ score }: { score: number }) => {
     </span>
   );
 };
+
+/** Shown whenever real data is missing. UGT never fills the gap with invented values. */
+export const OfflineNotice = ({ message, compact }: { message: string, compact?: boolean }) => (
+  <div className={clsx(
+    "border border-[#ff3e3e]/40 bg-[#ff3e3e]/[0.06] font-mono flex items-start gap-3",
+    compact ? "px-3 py-2" : "px-4 py-3"
+  )}>
+    <span className="w-1.5 h-1.5 mt-1 bg-[#ff3e3e] shadow-[0_0_8px_rgba(255,62,62,0.8)] animate-pulse shrink-0" />
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold tracking-[0.3em] text-[#ff3e3e] uppercase">API_OFFLINE</span>
+      <span className="text-[11px] text-[#ff9b9b]/80 leading-snug">{message}</span>
+    </div>
+  </div>
+);
+
+/** Marks a panel whose content is not yet wired to real data. */
+export const NotConnectedBadge = ({ label = 'NOT_CONNECTED' }: { label?: string }) => (
+  <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 border border-[#ffb800]/40 text-[#ffb800] tracking-widest uppercase leading-none">
+    {label}
+  </span>
+);
+
+/** Empty state in the terminal's standby style, for panels with no real data yet. */
+export const StandbyPanel = ({ title, detail }: { title: string, detail: string }) => (
+  <div className="p-8 text-center border border-dashed border-white/5 bg-white/[0.02]">
+    <div className="text-white/20 text-xs font-bold tracking-[0.4em] uppercase mb-2">[ {title} ]</div>
+    <div className="text-[10px] text-[#444] font-bold uppercase">{detail}</div>
+  </div>
+);

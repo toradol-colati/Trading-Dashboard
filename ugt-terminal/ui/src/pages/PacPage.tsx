@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { 
-  CalendarClock, 
-  CheckCircle2, 
-  Clock 
+  CalendarClock
 } from 'lucide-react';
-import { TerminalCard, StatItem } from '../components/Shared';
+import { TerminalCard, StatItem, OfflineNotice, NotConnectedBadge, StandbyPanel } from '../components/Shared';
 
 export const PacPage = ({ isWidget }: { isWidget?: boolean }) => {
   const [plans, setPlans] = useState<any[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/pac/plans')
@@ -16,13 +15,14 @@ export const PacPage = ({ isWidget }: { isWidget?: boolean }) => {
         if (!res.ok) throw new Error('API Error');
         return res.json();
       })
-      .then(setPlans)
+      .then(data => {
+        setPlans(Array.isArray(data) ? data : []);
+        setApiError(null);
+      })
       .catch(err => {
-        console.error('API Fetch failed, using MOCK data:', err);
-        setPlans([
-          { label: "Crypto Core Accumulation", frequency: "WEEKLY", contribution_amount: "500", contribution_currency: "EUR", next_execution_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString() },
-          { label: "DeFi Yield Reserve", frequency: "MONTHLY", contribution_amount: "2000", contribution_currency: "EUR", next_execution_date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 12).toISOString() }
-        ]);
+        console.error('PAC API unreachable:', err);
+        setPlans([]);
+        setApiError('Backend PAC non raggiungibile: nessun dato mostrato.');
       });
   }, []);
 
@@ -44,6 +44,8 @@ export const PacPage = ({ isWidget }: { isWidget?: boolean }) => {
           </button>
         </header>
       )}
+
+      {apiError && <div className="mb-4"><OfflineNotice message={apiError} compact={isWidget} /></div>}
 
       <div className={clsx("grid gap-6 flex-1", isWidget ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3")}>
         <div className={clsx("space-y-6", isWidget ? "" : "lg:col-span-2")}>
@@ -71,56 +73,24 @@ export const PacPage = ({ isWidget }: { isWidget?: boolean }) => {
           </TerminalCard>
 
           <TerminalCard title="EXECUTION_LOGS_L3">
-             <div className="space-y-2">
-                {[
-                  { date: "2024-03-01", plan: "Crypto Core", status: "COMPLETED", advice: "Deploy €500 (60% BTC, 40% ETH)" },
-                  { date: "2024-02-15", plan: "Crypto Core", status: "COMPLETED", advice: "Deploy €500 (60% BTC, 40% ETH)" },
-                ].map((exec, i) => (
-                  <div key={i} className="flex items-center gap-4 py-3 border-b border-white/[0.02] last:border-0 hover:bg-white/[0.03] transition-colors group px-2">
-                     <CheckCircle2 size={12} className="text-neoGreen opacity-50 group-hover:opacity-100" />
-                     <div className="flex-1 flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-[#606060]">{exec.date}</span>
-                        <span className="text-white/40 group-hover:text-white transition-colors">{exec.advice}</span>
-                        <span className="text-neoGreen px-1 bg-neoGreen/5 border border-neoGreen/20">OK</span>
-                     </div>
-                  </div>
-                ))}
-             </div>
+             <div className="flex justify-end mb-3"><NotConnectedBadge /></div>
+             <StandbyPanel title="NO_EXECUTION_LOGS" detail="Execution history not wired to the UI yet" />
           </TerminalCard>
         </div>
 
         <div className="space-y-6">
            <TerminalCard title="PERFORMANCE_GRID">
               <div className="space-y-6 p-2">
-                <StatItem label="TOTAL_DEPLOYED" value="12,500" unit="EUR" trend={1.2} />
-                <StatItem label="ROI_TIME_WEIGHTED" value="15.4" unit="%" trend={0.5} />
-                <StatItem label="NEXT_BATCH_ETA" value="12" unit="DAYS" />
+                <div className="flex justify-end"><NotConnectedBadge /></div>
+                <StatItem label="TOTAL_DEPLOYED" value="—" unit="EUR" />
+                <StatItem label="ROI_TIME_WEIGHTED" value="—" unit="%" />
+                <StatItem label="NEXT_BATCH_ETA" value="—" unit="DAYS" />
               </div>
            </TerminalCard>
 
            <TerminalCard title="UPCOMING_VECTOR">
-              <div className="p-5 bg-white/[0.03] border-l-4 border-neoGreen group">
-                <div className="flex justify-between items-center mb-6">
-                  <h4 className="text-[10px] font-bold text-white tracking-widest group-hover:text-neoGreen transition-colors uppercase">TARGET: CRYPTO_CORE</h4>
-                  <Clock size={12} className="text-[#444]" />
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { symbol: "BTC", weight: 60, color: "bg-neoGreen" },
-                    { symbol: "ETH", weight: 40, color: "bg-cyberBlue" }
-                  ].map(asset => (
-                    <div key={asset.symbol} className="space-y-1">
-                      <div className="flex justify-between text-[9px] font-bold uppercase">
-                        <span className="text-white/60">{asset.symbol}</span>
-                        <span className="text-white">{asset.weight}%</span>
-                      </div>
-                      <div className="w-full h-1 bg-white/5">
-                        <div className={clsx("h-full transition-all duration-1000", asset.color)} style={{ width: `${asset.weight}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className="flex justify-end mb-3"><NotConnectedBadge /></div>
+              <StandbyPanel title="NO_TARGET_ALLOCATION" detail="Target allocation not wired to the UI yet" />
            </TerminalCard>
         </div>
       </div>

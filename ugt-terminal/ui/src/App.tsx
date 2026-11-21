@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType } from 'react'
+import { useEffect, useMemo, useState, type ComponentType } from 'react'
 import {
   BarChart3,
   CalendarClock,
@@ -34,7 +34,38 @@ type WidgetDefinition = {
 }
 
 function App() {
-  const [isSystemOnline] = useState(true)
+  // Real backend status, polled from the API: never assume the system is healthy.
+  const [isSystemOnline, setIsSystemOnline] = useState<boolean | null>(null)
+  const [latencyMs, setLatencyMs] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const check = async () => {
+      const started = performance.now()
+      try {
+        const res = await fetch('/api/system/status', { cache: 'no-store' })
+        const body = res.ok ? await res.json() : null
+        const healthy = Boolean(body && body.infrastructure?.database === 'OK' && body.infrastructure?.redis === 'OK')
+        if (!cancelled) {
+          setIsSystemOnline(healthy)
+          setLatencyMs(res.ok ? Math.round(performance.now() - started) : null)
+        }
+      } catch {
+        if (!cancelled) {
+          setIsSystemOnline(false)
+          setLatencyMs(null)
+        }
+      }
+    }
+    void check()
+    const timer = setInterval(() => void check(), 15000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
+
+  const statusLabel = isSystemOnline === null ? 'CHECKING' : isSystemOnline ? 'HEALTHY' : 'OFFLINE'
   const [expandedWidgetId, setExpandedWidgetId] = useState<string | null>(null)
   const [expandedNewsArticleId, setExpandedNewsArticleId] = useState<string | null>(null)
 
@@ -104,14 +135,14 @@ function App() {
           <div className="h-4 w-px bg-[#2a2a2a] mx-2" />
           <div className="flex items-center gap-2 text-[10px] text-[#606060] uppercase tracking-[0.2em]">
             <Circle size={6} fill={isSystemOnline ? '#00ff41' : '#ff3e3e'} className={isSystemOnline ? 'animate-pulse' : ''} />
-            <span>CORE_STATUS: {isSystemOnline ? 'HEALTHY' : 'CRITICAL'}</span>
+            <span className={isSystemOnline === false ? 'text-[#ff3e3e]' : undefined}>CORE_STATUS: {statusLabel}</span>
           </div>
         </div>
         <div className="flex items-center gap-6 text-[10px] uppercase text-[#606060] font-bold">
           <div className="hidden lg:flex gap-6">
-            <span className="border-l border-[#222] pl-4">MEM: 124MB</span>
-            <span className="border-l border-[#222] pl-4 text-white">CPU: 4.2%</span>
-            <span className="border-l border-[#222] pl-4">NET: 42KB/S</span>
+            <span className="border-l border-[#222] pl-4">MEM: —</span>
+            <span className="border-l border-[#222] pl-4">CPU: —</span>
+            <span className="border-l border-[#222] pl-4">NET: —</span>
           </div>
           <button className="hover:text-neoGreen transition-all hover:scale-110">
             <Settings size={18} />
@@ -188,12 +219,12 @@ function App() {
       <footer className="h-8 border-t border-[#1a1a1a] bg-[#050505] flex items-center px-4 justify-between text-[9px] font-bold uppercase text-[#333]">
         <div className="flex gap-8">
           <span className="flex items-center gap-2 italic">
-            <div className="h-1.5 w-1.5 rounded-full bg-neoGreen animate-ping" /> ROOT@TERMINAL:~# DATA_INGESTION_ACTIVE
+            <div className={isSystemOnline ? "h-1.5 w-1.5 rounded-full bg-neoGreen animate-ping" : "h-1.5 w-1.5 rounded-full bg-[#ff3e3e]"} /> ROOT@TERMINAL:~# {isSystemOnline ? 'BACKEND_ONLINE' : 'BACKEND_OFFLINE'}
           </span>
-          <span className="text-neoGreen/40">U.G.T. CORE SYSTEM v1.0.5-ULTRA OPERATIONAL</span>
+          <span className={isSystemOnline ? "text-neoGreen/40" : "text-[#ff3e3e]/60"}>U.G.T. CORE SYSTEM v1.0.5-ULTRA {statusLabel}</span>
         </div>
         <div className="flex gap-6 items-center">
-          <span className="hover:text-white transition-colors cursor-help">LATENCY: 0.002MS</span>
+          <span className="hover:text-white transition-colors cursor-help">LATENCY: {latencyMs === null ? '—' : `${latencyMs}MS`}</span>
           <span className="h-3 w-px bg-[#1a1a1a]" />
           <span>SYSTEM_TIME: {new Date().toISOString()}</span>
         </div>

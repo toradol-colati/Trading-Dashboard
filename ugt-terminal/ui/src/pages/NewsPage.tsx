@@ -18,7 +18,7 @@ import {
   Star,
   X,
 } from 'lucide-react';
-import { SentimentBadge, TerminalCard } from '../components/Shared';
+import { SentimentBadge, TerminalCard, OfflineNotice } from '../components/Shared';
 import { useStream } from '../hooks/useStream';
 
 type NewsArticleCard = {
@@ -65,7 +65,7 @@ type NewsArchiveItem = {
 };
 
 type IntelligenceResponse = {
-  mode: 'mock' | 'live';
+  mode: 'live';
   day: string;
   available_days: Array<{ day: string; count: number }>;
   watchlist: string[];
@@ -87,55 +87,6 @@ const clampStyle = {
   WebkitBoxOrient: 'vertical' as const,
   overflow: 'hidden',
 };
-
-const fallbackData = (): IntelligenceResponse => ({
-  mode: 'mock',
-  day: new Date().toISOString().slice(0, 10),
-  available_days: [{ day: new Date().toISOString().slice(0, 10), count: 5 }],
-  watchlist: ['BTC', 'ETH', 'SOL', 'SUI', 'NASDAQ', 'SPX', 'DXY', 'EURUSD', 'GOLD'],
-  archive: [],
-  sections: [
-    {
-      code: 'impact_tickers',
-      label: 'Impatto sui ticker',
-      articles: [
-        {
-          id: 'fallback-1',
-          title: 'Bitcoin ETF inflows accelerate as macro desks price in softer Fed stance',
-          summary:
-            'Institutional desks increased BTC exposure after softer inflation expectations improved macro risk appetite and boosted crypto beta demand.',
-          compact_summary: 'BTC exposure up as softer inflation expectations lift crypto beta demand.',
-          source: 'COINDESK',
-          url: 'https://www.coindesk.com/',
-          published_at: new Date().toISOString(),
-          language: 'en',
-          tickers: ['BTC', 'NASDAQ'],
-          sentiment_compound: 0.74,
-          feedback_rating: null,
-          feedback_section_code: null,
-          archived: false,
-          cluster_size: 2,
-          related_sources: [
-            {
-              id: 'fallback-2',
-              source: 'REUTERS',
-              title: 'Bitcoin ETF inflows accelerate as macro desks price in softer Fed stance',
-              url: 'https://www.reuters.com/',
-            },
-          ],
-          body_full:
-            'Institutional allocators pushed another wave of spot Bitcoin ETF inflows after lower-than-expected inflation readings revived expectations for a softer Federal Reserve path. Desk commentary linked the move to broader risk appetite and renewed crypto beta demand.',
-          body_preview:
-            'Institutional allocators pushed another wave of spot Bitcoin ETF inflows after lower-than-expected inflation readings revived expectations for a softer Federal Reserve path.',
-          body_mode: 'full',
-          section_scores: { impact_tickers: 5.9, macro_relevant: 4.7, extreme_sentiment: 5.1 },
-          matched_keywords: ['etf', 'fed', 'inflation'],
-        },
-      ],
-    },
-  ],
-  all_selected: [],
-});
 
 function lineClamp(lines: number) {
   return {
@@ -228,12 +179,10 @@ function WidgetStory({
 
 function NewsCard({
   article,
-  mode,
   active,
   onOpen,
 }: {
   article: NewsArticleCard;
-  mode: 'mock' | 'live';
   active: boolean;
   onOpen: (article: NewsArticleCard) => void;
 }) {
@@ -283,13 +232,7 @@ function NewsCard({
             </span>
           ))}
         </div>
-        {mode === 'live' ? (
-          <SentimentBadge score={article.sentiment_compound} />
-        ) : (
-          <span className="rounded-full border border-[#4c4231] bg-[#231d13] px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f0d28d]">
-            Demo feed
-          </span>
-        )}
+        <SentimentBadge score={article.sentiment_compound} />
       </div>
     </button>
   );
@@ -407,8 +350,8 @@ function WidgetShell({
         </div>
 
         {error && (
-          <div className="mt-3 rounded-xl border border-[#574728] bg-[#231d11] px-3 py-2 text-[11px] text-[#f2d38d]">
-            {error}
+          <div className="mt-3">
+            <OfflineNotice message={error} compact />
           </div>
         )}
 
@@ -430,14 +373,12 @@ function WidgetShell({
 
 function NewsDrawer({
   article,
-  mode,
   mutatingArticleId,
   onClose,
   onFeedback,
   onArchive,
 }: {
   article: NewsArticleCard;
-  mode: 'mock' | 'live';
   mutatingArticleId: string | null;
   onClose: () => void;
   onFeedback: (articleId: string, rating: -1 | 1 | 2, sectionCode?: string) => void;
@@ -473,13 +414,7 @@ function NewsDrawer({
             <span className="rounded-full border border-[#2c333f] bg-[#111723] px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-[#92a0ba]">
               {formatArticleDate(article.published_at)}
             </span>
-            {mode === 'live' ? (
-              <SentimentBadge score={article.sentiment_compound} />
-            ) : (
-              <span className="rounded-full border border-[#4c4231] bg-[#231d13] px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-[#f0d28d]">
-                Mock feed
-              </span>
-            )}
+            <SentimentBadge score={article.sentiment_compound} />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -653,10 +588,12 @@ export const NewsPage = ({
       setError(null);
     } catch (loadError) {
       console.error('Failed to load news intelligence:', loadError);
-      const fallback = fallbackData();
-      setFeed(fallback);
-      setSelectedDay(fallback.day);
-      setError('Feed in fallback locale: API non raggiungibile o ancora in boot.');
+      // Never replace the feed with invented articles: keep the last real data (if any) and say so.
+      setError(
+        feed
+          ? 'Backend news non raggiungibile: il feed non si aggiorna. Le notizie visibili sono quelle reali caricate prima del guasto.'
+          : 'Backend news non raggiungibile: nessuna notizia caricata.',
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -720,6 +657,9 @@ export const NewsPage = ({
         }),
       });
       await loadFeed(selectedDay || undefined, true);
+    } catch (mutationError) {
+      console.error('News write failed:', mutationError);
+      setError('Salvataggio non riuscito: il backend non ha risposto. Riprova quando torna online.');
     } finally {
       setMutatingArticleId(null);
     }
@@ -734,6 +674,9 @@ export const NewsPage = ({
         body: JSON.stringify({ article_id: articleId }),
       });
       await loadFeed(selectedDay || undefined, true);
+    } catch (mutationError) {
+      console.error('News write failed:', mutationError);
+      setError('Salvataggio non riuscito: il backend non ha risposto. Riprova quando torna online.');
     } finally {
       setMutatingArticleId(null);
     }
@@ -755,6 +698,9 @@ export const NewsPage = ({
         body: JSON.stringify({ tickers }),
       });
       await loadFeed(selectedDay || undefined, true);
+    } catch (mutationError) {
+      console.error('Watchlist save failed:', mutationError);
+      setError('Salvataggio della watchlist non riuscito: il backend non ha risposto.');
     } finally {
       setSavingTickerList(false);
     }
@@ -766,7 +712,6 @@ export const NewsPage = ({
         <NewsCard
           key={article.id}
           article={article}
-          mode={feed?.mode || 'mock'}
           active={selectedArticle?.id === article.id}
           onOpen={setSelectedArticle}
         />
@@ -880,11 +825,6 @@ export const NewsPage = ({
             <span className="rounded-full border border-[#273247] bg-[#0f1624] px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-[#dbe5ff]">
               {feed?.archive.length || 0} nello storico
             </span>
-            {feed?.mode === 'mock' && (
-              <span className="rounded-full border border-[#5d4a26] bg-[#251f12] px-3 py-2 text-[11px] uppercase tracking-[0.18em] text-[#f1d085]">
-                Mock mode
-              </span>
-            )}
           </div>
 
           {showTickerEditor && (
@@ -908,8 +848,8 @@ export const NewsPage = ({
           )}
 
           {error && (
-            <div className="mt-3 rounded-xl border border-[#56472a] bg-[#241f14] px-3 py-2 text-[12px] text-[#f4d28c]">
-              {error}
+            <div className="mt-3">
+              <OfflineNotice message={error} />
             </div>
           )}
         </div>
@@ -960,7 +900,6 @@ export const NewsPage = ({
           {selectedArticle && (
             <NewsDrawer
               article={selectedArticle}
-              mode={feed?.mode || 'mock'}
               mutatingArticleId={mutatingArticleId}
               onClose={() => setSelectedArticle(null)}
               onFeedback={(articleId, rating, sectionCode) => void submitFeedback(articleId, rating, sectionCode)}

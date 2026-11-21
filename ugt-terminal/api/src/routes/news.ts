@@ -1,34 +1,15 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import pool, { isMock, query } from '../db/pool.js';
+import pool, { query } from '../db/pool.js';
 import { DEFAULT_NEWS_WATCHLIST } from '../config/news-intelligence.js';
 import {
   buildIntelligenceFeed,
-  buildMockRawArticles,
   getSectionLabel,
   inferSourceClass,
   normalizeSource,
   type FeedbackPreferenceSignals,
   type RawNewsArticle,
 } from '../services/news-intelligence.js';
-
-type ArchiveItem = {
-  id: string;
-  title: string;
-  summary: string;
-  url: string | null;
-  saved_at: string;
-  source: string;
-};
-
-type FeedMode = 'mock' | 'live';
-
-const mockFeedback = new Map<
-  string,
-  { rating: number; section_code: string | null; updated_at: string }
->();
-const mockArchive = new Map<string, ArchiveItem>();
-let mockWatchlist: string[] = [...DEFAULT_NEWS_WATCHLIST];
 
 const rawQuerySchema = z.object({
   source_class: z.enum(['crypto_native', 'tradfi']).optional(),
@@ -81,33 +62,7 @@ function parseTickers(rawValue: unknown) {
   return [];
 }
 
-function buildArchiveSummary(body: string | null, title: string) {
-  const sourceText = (body || title).replace(/\s+/g, ' ').trim();
-  if (sourceText.length <= 92) return sourceText;
-  return `${sourceText.slice(0, 91).trimEnd()}...`;
-}
-
-function buildMockArticles(day: string) {
-  const articles = buildMockRawArticles(day);
-  return articles.map((article) => {
-    const feedback = mockFeedback.get(article.id);
-    const archived = mockArchive.get(article.id);
-    return {
-      ...article,
-      feedback_rating: feedback?.rating ?? article.feedback_rating,
-      feedback_section_code: feedback?.section_code ?? article.feedback_section_code,
-      feedback_updated_at: feedback?.updated_at ?? article.feedback_updated_at,
-      archived: Boolean(archived),
-      archived_at: archived?.saved_at ?? article.archived_at,
-    };
-  });
-}
-
 async function getWatchlist() {
-  if (isMock) {
-    return [...mockWatchlist];
-  }
-
   const result = await query(
     `
       SELECT ticker
@@ -127,11 +82,6 @@ async function setWatchlist(tickers: string[]) {
   const normalized = Array.from(
     new Set(tickers.map(normalizeTicker).filter(Boolean)),
   );
-
-  if (isMock) {
-    mockWatchlist = normalized;
-    return normalized;
-  }
 
   const client = await pool.connect();
   try {
@@ -158,17 +108,6 @@ async function setWatchlist(tickers: string[]) {
 }
 
 async function getAvailableDays(limit: number) {
-  if (isMock) {
-    return Array.from({ length: Math.min(limit, 5) }).map((_, index) => {
-      const date = new Date();
-      date.setUTCDate(date.getUTCDate() - index);
-      return {
-        day: formatDay(date),
-        count: buildMockRawArticles(formatDay(date)).length,
-      };
-    });
-  }
-
   const result = await query(
     `
       SELECT published_at::date::text AS day, COUNT(*)::int AS count
@@ -187,8 +126,6 @@ async function getAvailableDays(limit: number) {
 }
 
 async function getLatestArticleCalendarDay(): Promise<string | null> {
-  if (isMock) return null;
-
   const result = await query(
     `
       SELECT MAX(published_at)::date::text AS day
@@ -241,10 +178,6 @@ function mapRowToArticle(row: Record<string, unknown>): RawNewsArticle {
 }
 
 async function getArticlesForDay(day: string, limit: number) {
-  if (isMock) {
-    return buildMockArticles(day).slice(0, limit);
-  }
-
   const result = await query(
     `
       SELECT
@@ -281,27 +214,6 @@ async function getArticlesForDay(day: string, limit: number) {
 }
 
 async function getFeedbackPreferenceSignals(): Promise<FeedbackPreferenceSignals> {
-  if (isMock) {
-    const source: Record<string, number> = {};
-    const section: Record<string, number> = {};
-    const ticker: Record<string, number> = {};
-
-    for (const [id, feedback] of mockFeedback.entries()) {
-      const article = buildMockArticles(formatDay(new Date())).find((item) => item.id === id);
-      if (!article) continue;
-      const normalizedSource = normalizeSource(article.source_code);
-      source[normalizedSource] = (source[normalizedSource] || 0) + feedback.rating;
-      if (feedback.section_code) {
-        section[feedback.section_code] = (section[feedback.section_code] || 0) + feedback.rating;
-      }
-      for (const tickerCode of article.tickers) {
-        ticker[tickerCode.toUpperCase()] = (ticker[tickerCode.toUpperCase()] || 0) + feedback.rating;
-      }
-    }
-
-    return { source, section, ticker };
-  }
-
   const [sourceRows, sectionRows, tickerRows] = await Promise.all([
     query(
       `
@@ -353,12 +265,6 @@ async function getFeedbackPreferenceSignals(): Promise<FeedbackPreferenceSignals
 }
 
 async function getArchive(limit: number) {
-  if (isMock) {
-    return Array.from(mockArchive.values())
-      .sort((left, right) => right.saved_at.localeCompare(left.saved_at))
-      .slice(0, limit);
-  }
-
   const result = await query(
     `
       SELECT
@@ -387,15 +293,6 @@ async function getArchive(limit: number) {
 }
 
 async function persistFeedback(articleId: string, rating: number, sectionCode?: string) {
-  if (isMock) {
-    mockFeedback.set(articleId, {
-      rating,
-      section_code: sectionCode || null,
-      updated_at: new Date().toISOString(),
-    });
-    return;
-  }
-
   await query(
     `
       INSERT INTO news_article_feedback (article_id, rating, section_code)
@@ -410,21 +307,6 @@ async function persistFeedback(articleId: string, rating: number, sectionCode?: 
 }
 
 async function persistArchive(articleId: string) {
-  if (isMock) {
-    const article = buildMockArticles(formatDay(new Date())).find((item) => item.id === articleId);
-    if (!article) throw new Error('Article not found');
-
-    mockArchive.set(articleId, {
-      id: article.id,
-      title: article.title,
-      summary: buildArchiveSummary(article.body, article.title),
-      url: article.url,
-      saved_at: new Date().toISOString(),
-      source: article.source_code,
-    });
-    return;
-  }
-
   await query(
     `
       INSERT INTO news_saved_archive (article_id, title, summary, url)
@@ -482,7 +364,7 @@ const newsRoutes: FastifyPluginAsync = async (_fastify: FastifyInstance) => {
     let day = await resolveDay(parsed.data.day);
     let articles = await getArticlesForDay(day, parsed.data.limit);
 
-    if (!isMock && articles.length === 0 && !parsed.data.day) {
+    if (articles.length === 0 && !parsed.data.day) {
       const latest = await getLatestArticleCalendarDay();
       if (latest && latest !== day) {
         day = latest;
@@ -500,7 +382,7 @@ const newsRoutes: FastifyPluginAsync = async (_fastify: FastifyInstance) => {
     const intelligence = buildIntelligenceFeed(articles, watchlist, preferenceSignals);
 
     return {
-      mode: (isMock ? 'mock' : 'live') as FeedMode,
+      mode: 'live' as const,
       day,
       available_days: availableDays,
       watchlist,

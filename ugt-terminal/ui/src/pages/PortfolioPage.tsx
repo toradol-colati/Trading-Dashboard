@@ -8,11 +8,12 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { TerminalCard } from '../components/Shared';
+import { TerminalCard, OfflineNotice } from '../components/Shared';
 
 export const PortfolioPage = ({ isWidget }: { isWidget?: boolean }) => {
   const [holdings, setHoldings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/portfolio/aggregated')
@@ -24,17 +25,13 @@ export const PortfolioPage = ({ isWidget }: { isWidget?: boolean }) => {
         if (Array.isArray(data)) {
             setHoldings(data);
         }
+        setApiError(null);
         setLoading(false);
       })
       .catch(err => {
-        console.error('API Fetch failed, using MOCK data:', err);
-        setHoldings([
-          { symbol: "BTC", total_quantity: "0.452", avg_cost: "52000" },
-          { symbol: "ETH", total_quantity: "4.5", avg_cost: "2800" },
-          { symbol: "SOL", total_quantity: "150", avg_cost: "85" },
-          { symbol: "EUR", total_quantity: "12500", avg_cost: "1" },
-          { symbol: "NVDA", total_quantity: "25", avg_cost: "450" },
-        ]);
+        console.error('Portfolio API unreachable:', err);
+        setHoldings([]);
+        setApiError('Backend portafoglio non raggiungibile: nessun dato mostrato.');
         setLoading(false);
       });
   }, []);
@@ -75,6 +72,8 @@ export const PortfolioPage = ({ isWidget }: { isWidget?: boolean }) => {
            <div className="text-xl font-bold text-neoGreen tracking-tighter">€{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
         </div>
       )}
+
+      {apiError && <div className="mb-4"><OfflineNotice message={apiError} compact={isWidget} /></div>}
 
       <div className={clsx("grid gap-6 flex-1", isWidget ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3")}>
         <div className="col-span-1">
