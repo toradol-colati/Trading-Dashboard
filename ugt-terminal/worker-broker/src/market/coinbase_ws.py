@@ -18,12 +18,10 @@ class CoinbaseWS:
         self.redis = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379"))
 
     async def start(self):
-        logger.info("coinbase_ws_starting", symbols=self.symbols)
-        # Placeholder for real WS loop using coinbase-advanced-py or websockets lib
-        # In a real implementation we would connect to wss://advanced-trade-ws.coinbase.com
-        while True:
-            # Simulate a live tick for the demo purpose if needed, or just stay open
-            await asyncio.sleep(60)
+        # Not implemented yet: say so loudly instead of pretending to stream.
+        # A real implementation would connect to wss://advanced-trade-ws.coinbase.com
+        logger.warning("coinbase_ws_not_implemented", symbols=self.symbols,
+                       detail="Coinbase feed is not wired: no Coinbase prices are produced")
 
     async def _relay_tick(self, data):
         tick = {

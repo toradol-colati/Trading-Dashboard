@@ -70,24 +70,15 @@ server.register(wsStream);
 
 const start = async () => {
   try {
-    // 1. Run migrations
-    const { isMock } = await import('./db/pool.js');
-    if (!isMock) {
-      console.log('Running migrations...');
-      try {
-        await migrate({
-          databaseUrl: process.env.DATABASE_URL as string,
-          migrationsTable: 'pgmigrations',
-          dir: resolveMigrationsDir(),
-          direction: 'up',
-          count: Infinity,
-        });
-      } catch (migrateErr) {
-        console.error('[WARN] Critical: Migrations failed. Continuing in degraded mode.');
-      }
-    } else {
-      console.log('Skipping migrations (MOCK_MODE)');
-    }
+    // 1. Run migrations (a failure stops the API: no degraded or fake mode)
+    console.log('Running migrations...');
+    await migrate({
+      databaseUrl: process.env.DATABASE_URL as string,
+      migrationsTable: 'pgmigrations',
+      dir: resolveMigrationsDir(),
+      direction: 'up',
+      count: Infinity,
+    });
 
     // 2. Bootstrap KEK
     console.log('Bootstrapping KEK...');

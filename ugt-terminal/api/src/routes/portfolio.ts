@@ -6,17 +6,6 @@ import { parse } from 'csv-parse/sync';
 const portfolioRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // GET /api/portfolio/aggregated
   fastify.get('/aggregated', async (request, reply) => {
-    const { isMock } = await import('../db/pool.js');
-    if (isMock) {
-      return [
-        { symbol: 'BTC', total_quantity: '0.4285', avg_cost: '42500.00', currency: 'EUR', asset_class: 'crypto' },
-        { symbol: 'ETH', total_quantity: '3.1200', avg_cost: '2100.50', currency: 'EUR', asset_class: 'crypto' },
-        { symbol: 'SOL', total_quantity: '25.0000', avg_cost: '85.20', currency: 'EUR', asset_class: 'crypto' },
-        { symbol: 'NVDA', total_quantity: '10.0000', avg_cost: '110.00', currency: 'USD', asset_class: 'equity' },
-        { symbol: 'EUR', total_quantity: '1240.50', avg_cost: '1.00', currency: 'EUR', asset_class: 'cash' },
-      ];
-    }
-
     const { query } = await import('../db/pool.js');
     const res = await query(`
       SELECT

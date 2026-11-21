@@ -8,12 +8,13 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { TerminalCard } from '../components/Shared';
+import { TerminalCard, OfflineNotice, NotConnectedBadge, StandbyPanel } from '../components/Shared';
 import { useStream } from '../hooks/useStream';
 
 export const PricesPage = ({ isWidget }: { isWidget?: boolean }) => {
   const [selectedSymbol, setSelectedSymbol] = useState('BTCEUR');
   const [ticks, setTicks] = useState<any[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
   const { data } = useStream(['prices']);
 
   useEffect(() => {
@@ -26,21 +27,12 @@ export const PricesPage = ({ isWidget }: { isWidget?: boolean }) => {
         if (Array.isArray(data)) {
             setTicks(data.reverse());
         }
+        setApiError(null);
       })
       .catch(err => {
-        console.error('API Fetch failed, using MOCK data:', err);
-        // Generate mock ticks based on selected symbol
-        let basePrice = selectedSymbol === 'BTCEUR' ? 65000 : selectedSymbol === 'ETHEUR' ? 3500 : selectedSymbol === 'SOLEUR' ? 140 : 100;
-        const mockTicks = Array.from({ length: 50 }).map((_, i) => {
-          basePrice = basePrice + (Math.random() - 0.5) * (basePrice * 0.005);
-          return {
-            time: new Date(Date.now() - (50 - i) * 1000).toISOString(),
-            price: basePrice,
-            volume: Math.random() * 2,
-            symbol: selectedSymbol
-          };
-        });
-        setTicks(mockTicks);
+        console.error('Prices API unreachable:', err);
+        setTicks([]);
+        setApiError('Backend prezzi non raggiungibile: nessun dato mostrato.');
       });
   }, [selectedSymbol]);
 
@@ -92,15 +84,23 @@ export const PricesPage = ({ isWidget }: { isWidget?: boolean }) => {
             </div>
             {!isWidget && (
               <div className="hidden lg:flex gap-4 text-[#444] text-[10px] uppercase font-bold">
-                <div className="flex flex-col items-end"><span className="text-white/40">24H_VOL</span><span>1.2B</span></div>
-                <div className="flex flex-col items-end"><span className="text-white/40">MKT_DOM</span><span>52.1%</span></div>
-                <div className="flex flex-col items-end"><span className="text-black bg-neoGreen px-1">STABLE</span></div>
+                <div className="flex flex-col items-end"><span className="text-white/40">24H_VOL</span><span>—</span></div>
+                <div className="flex flex-col items-end"><span className="text-white/40">MKT_DOM</span><span>—</span></div>
+                <div className="flex flex-col items-end">
+                  {apiError || ticks.length === 0
+                    ? <span className="text-black bg-[#ff3e3e] px-1">OFFLINE</span>
+                    : <span className="text-black bg-neoGreen px-1">LIVE</span>}
+                </div>
               </div>
             )}
           </header>
 
+          {apiError && <OfflineNotice message={apiError} compact={isWidget} />}
+
           <div className="flex-1 min-h-[250px] relative">
-            <div className="absolute top-2 left-2 text-[8px] text-neoGreen/30 font-bold z-10">[ HISTORICAL_PRICE_STREAM_ACTIVE ]</div>
+            <div className={clsx("absolute top-2 left-2 text-[8px] font-bold z-10", ticks.length > 0 ? "text-neoGreen/30" : "text-[#ff3e3e]/60")}>
+              {ticks.length > 0 ? '[ HISTORICAL_PRICE_STREAM_ACTIVE ]' : '[ NO_PRICE_DATA ]'}
+            </div>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={ticks}>
                 <defs>
@@ -134,28 +134,12 @@ export const PricesPage = ({ isWidget }: { isWidget?: boolean }) => {
         {!isWidget && (
           <div className="col-span-12 lg:col-span-3 flex flex-col gap-6 overflow-hidden border-l border-white/5 pl-6">
              <div className="flex flex-col h-1/2 overflow-hidden">
-               <div className="text-[10px] font-bold text-white/40 mb-3 border-b border-white/5 pb-1">ORDER_BOOK_L2</div>
-               <div className="flex-1 font-mono text-[9px] space-y-0.5 overflow-hidden">
-                  <div className="text-[#ff3e3e]/70 space-y-0.5">
-                    {[65050, 65040, 65030, 65020, 65010].map((p, i) => (
-                      <div key={i} className="flex justify-between items-center px-1 hover:bg-[#ff3e3e05] transition-colors">
-                        <span>{p.toFixed(2)}</span>
-                        <span className="text-white/50">{(Math.random() * 2).toFixed(4)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-center py-2 border-y border-neoGreen/20 my-1 text-white font-bold bg-neoGreen/5 flex justify-between px-2">
-                    <span className="text-neoGreen">SPREAD</span>
-                    <span>{latestPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="text-neoGreen/70 space-y-0.5">
-                    {[65000, 64990, 64980, 64970, 64960].map((p, i) => (
-                      <div key={i} className="flex justify-between items-center px-1 hover:bg-neoGreen/5 transition-colors">
-                        <span>{p.toFixed(2)}</span>
-                        <span className="text-white/50">{(Math.random() * 2).toFixed(4)}</span>
-                      </div>
-                    ))}
-                  </div>
+               <div className="text-[10px] font-bold text-white/40 mb-3 border-b border-white/5 pb-1 flex items-center justify-between">
+                 <span>ORDER_BOOK_L2</span>
+                 <NotConnectedBadge />
+               </div>
+               <div className="flex-1 overflow-hidden">
+                 <StandbyPanel title="NO_L2_FEED" detail="Order book feed not wired to the UI yet" />
                </div>
              </div>
 

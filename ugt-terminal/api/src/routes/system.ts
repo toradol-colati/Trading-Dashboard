@@ -25,7 +25,8 @@ const systemRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
           api: 'OK',
           'worker-data': dataWorkerStatus ? 'OK' : 'UNKNOWN',
           'worker-nlp': nlpWorkerStatus ? 'OK' : 'UNKNOWN',
-          'worker-broker': 'OK'
+          // worker-broker publishes no heartbeat yet: never report a status we have not checked
+          'worker-broker': 'UNKNOWN'
         },
         active_sources_count: (dataWorkerStatus?.active_sources_count || 0) + (nlpWorkerStatus?.active_sources_count || 0),
         details: {
