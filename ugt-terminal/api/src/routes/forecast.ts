@@ -45,6 +45,20 @@ const forecastRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     };
   });
 
+  // GET /api/forecast/latest → one line per module and subject: headline, verdict, summary.
+  // Used by the Decision page to show what the models say without opening FORECAST_LAB.
+  fastify.get('/latest', async () => {
+    const res = await query(
+      `SELECT DISTINCT ON (module, symbol) module, symbol, status, computed_at,
+              result->>'headline' AS headline, result->>'verdict' AS verdict,
+              result->'summary' AS summary, result->>'error' AS error
+       FROM forecast_results
+       WHERE module <> 'M0_smoke'
+       ORDER BY module, symbol, computed_at DESC`,
+    );
+    return res.rows;
+  });
+
   // GET /api/forecast/results?module=M0_smoke&symbol=BTCUSDT  → latest result per symbol
   fastify.get('/results', async (request, reply) => {
     const parsed = resultsQuery.safeParse(request.query);
