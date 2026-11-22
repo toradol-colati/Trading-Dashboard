@@ -31,6 +31,7 @@ import pacRoutes from './routes/pac.js';
 import brokerRoutes from './routes/broker.js';
 import systemRoutes from './routes/system.js';
 import forecastRoutes from './routes/forecast.js';
+import reportRoutes from './routes/report.js';
 import wsStream from './ws/stream.js';
 
 const logger = pino({
@@ -68,6 +69,7 @@ server.register(pacRoutes, { prefix: '/api/pac' });
 server.register(brokerRoutes, { prefix: '/api/broker' });
 server.register(systemRoutes, { prefix: '/api/system' });
 server.register(forecastRoutes, { prefix: '/api/forecast' });
+server.register(reportRoutes, { prefix: '/api/forecast' });
 server.register(wsStream);
 
 const start = async () => {

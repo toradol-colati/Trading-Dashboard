@@ -1,0 +1,25 @@
+# Memory caps for a ~4 GB machine (the spare PC). Use together with the main file:
+#   docker compose -f docker-compose.yml -f ops/server/docker-compose.lite.yml up -d --build
+# Run from ugt-terminal/. Nothing is removed: every service still starts.
+# If a service is OOM-killed, `docker compose ps` shows it as restarting: visible, not hidden.
+# To free ~1 GB, the NLP worker can be paused with:  docker compose stop worker-nlp
+services:
+  postgres:
+    mem_limit: 640m
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "work_mem=8MB", "-c", "maintenance_work_mem=64MB", "-c", "effective_cache_size=384MB", "-c", "max_connections=40"]
+  redis:
+    mem_limit: 128m
+  api:
+    mem_limit: 256m
+  worker-data:
+    mem_limit: 256m
+  worker-nlp:
+    mem_limit: 1g
+  worker-broker:
+    mem_limit: 256m
+  worker-recorder:
+    mem_limit: 192m
+  worker-forecast:
+    mem_limit: 900m
+  ui:
+    mem_limit: 64m

@@ -1,0 +1,12 @@
+[Unit]
+Description=UGT captive portal re-login
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ugt-portal-relogin.sh
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
