@@ -138,6 +138,10 @@ export const ForecastLabPage = ({ isWidget }: { isWidget?: boolean }) => {
       )}
 
       <div className="flex flex-wrap gap-1 text-[9px] uppercase tracking-widest border-b border-white/5 pb-2">
+        <a href="/api/forecast/report" target="_blank" rel="noreferrer"
+          className="ml-auto order-last px-2 py-1 border border-[#8fb0ff]/40 text-[#8fb0ff] hover:bg-[#8fb0ff]/10">
+          REPORT ↗
+        </a>
         {MODULE_TABS.map((t) => (
           <button key={t.id} onClick={() => selectTab(t.id)}
             className={clsx('px-2 py-1 border', t.id === tab ? 'border-neoGreen text-neoGreen bg-neoGreen/5' : 'border-[#1f1f1f] text-[#606060] hover:text-white')}>
