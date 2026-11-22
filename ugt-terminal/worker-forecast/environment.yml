@@ -5,15 +5,24 @@ channels:
   - conda-forge
 dependencies:
   - r-base=4.4
+  # fpp3 core
   - r-fable=0.5
   - r-fabletools=0.8
   - r-feasts=0.5
   - r-tsibble=1.2
-  - r-urca
+  - r-distributional
+  # tests and models used by the modules
+  - r-urca          # ADF, KPSS, Johansen (M1, M7)
+  - r-tseries       # extra unit root tests
+  - r-strucchange   # structural breaks (M2)
+  - r-kfas          # Kalman filter and smoother (M4)
+  - r-depmixs4      # hidden Markov models (M5)
+  - r-copula        # copulas (M8)
+  - r-slider        # rolling windows
+  # data plumbing
   - r-dplyr
   - r-tidyr
   - r-lubridate
   - r-dbi
   - r-rpostgres
   - r-jsonlite
-  - r-distributional
