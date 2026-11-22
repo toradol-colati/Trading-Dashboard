@@ -168,22 +168,28 @@ m7_johansen <- function(con, pair) {
   # OU via AR(1): s_t = c + phi s_{t-1} + e
   ar <- lm(spread[-1] ~ spread[-length(spread)])
   phi <- unname(coef(ar)[2]); cc <- unname(coef(ar)[1]); se <- sd(residuals(ar))
-  theta <- -log(phi); mu <- cc / (1 - phi); sd_eq <- se / sqrt(1 - phi^2)
-  hl <- log(2) / theta
+  mean_rev <- is.finite(phi) && phi > 0 && phi < 1
+  if (mean_rev) {
+    theta <- -log(phi); mu <- cc / (1 - phi); sd_eq <- se / sqrt(1 - phi^2)
+    hl <- log(2) / theta
+  } else {
+    # phi >= 1 (or <= 0): no mean reversion, OU parameters and half-life are not defined
+    theta <- NA_real_; mu <- mean(spread); sd_eq <- sd(spread); hl <- NA_real_
+  }
   z <- (spread - mu) / sd_eq
   zt <- tail(z, 1)
-  signal <- if (zt > 2) "SHORT_SPREAD" else if (zt < -2) "LONG_SPREAD" else if (abs(zt) < 0.5) "FLAT" else "HOLD"
+  signal <- if (!mean_rev || rank == 0) "NO_SIGNAL" else if (zt > 2) "SHORT_SPREAD" else if (zt < -2) "LONG_SPREAD" else if (abs(zt) < 0.5) "FLAT" else "HOLD"
   jt <- data.frame(ipotesi = paste0("r <= ", seq_along(stats) - 1), statistica_trace = stats, critico_5pct = cv5, rifiuto = stats > cv5)
 
   module_result(
-    headline = sprintf("Johansen su %s: rango di cointegrazione %d. Spread %s con half-life OU di %s giorni; z-score attuale %.2f, quindi %s.",
+    headline = sprintf("Johansen su %s: rango di cointegrazione %d. Spread %s, %s; z-score attuale %.2f, quindi %s.",
                        paste(syms, collapse = " e "), rank, if (rank > 0) "stazionario" else "non garantito stazionario",
-                       fmt_num(hl, 1), zt, signal),
+                       if (mean_rev) sprintf("half-life OU di %s giorni", fmt_num(hl, 1)) else "nessuna mean reversion (phi >= 1)", zt, signal),
     verdict = signal,
     summary = list(
       ui_item("Rango di cointegrazione", as.character(rank), "trace test al 5%", if (rank > 0) "good" else "warn"),
       ui_item("Vettore (normalizzato)", paste(sprintf("%.3f", vec[seq_along(syms)]), collapse = " / ")),
-      ui_item("Half-life OU", paste(fmt_num(hl, 1), "giorni"), "tempo medio per dimezzare la distanza dalla media"),
+      ui_item("Half-life OU", if (mean_rev) paste(fmt_num(hl, 1), "giorni") else "—", if (mean_rev) "tempo medio per dimezzare la distanza dalla media" else "phi >= 1: lo spread non torna alla media", if (mean_rev) NULL else "warn"),
       ui_item("Theta (velocità)", fmt_num(theta, 4)),
       ui_item("Z-score oggi", fmt_num(zt, 2), "> 2 vendi lo spread, < −2 compralo, |z| < 0.5 chiudi",
               if (abs(zt) > 2) "warn" else NULL),
@@ -196,7 +202,8 @@ m7_johansen <- function(con, pair) {
     notes = list(
       "Johansen (trace, costante nel vettore, VAR con 2 lag): quante combinazioni lineari dei log prezzi sono stazionarie.",
       "Lo spread usa il primo vettore di cointegrazione. Ornstein-Uhlenbeck stimato come AR(1) discreto: theta = −ln(phi), half-life = ln 2 / theta.",
-      "Senza cointegrazione (rango 0) lo z-score non ha garanzia di tornare a zero: il segnale va ignorato."
+      "Senza cointegrazione (rango 0) o con phi >= 1 lo z-score non ha garanzia di tornare a zero: il segnale è NO_SIGNAL.",
+      "Vettore, media e deviazione standard sono stimati su tutto il periodo: lo z-score storico è più pulito di come sarebbe stato in tempo reale. L'ultimo valore è quello che conta."
     )
   )
 }
@@ -249,9 +256,11 @@ m7_regression <- function(con) {
   rc <- as.data.frame(res_cor); rc <- cbind(asset = rownames(rc), rc)
   b <- co$stima[co$asset == ys[1] & co$termine == bench]
   module_result(
-    headline = sprintf("Regressione multivariata: %s ha beta %.2f su %s; R² %s. I residui di %s restano correlati (%.2f): c'è un fattore crypto oltre a quello di mercato.",
+    headline = sprintf("Regressione multivariata: %s ha beta %.2f su %s; R² %s.%s",
                        ys[1], b, bench, paste(sprintf("%s %.2f", ys, unique(co$R2)), collapse = ", "),
-                       paste(ys, collapse = " e "), if (length(ys) > 1) res_cor[1, 2] else NA),
+                       if (length(ys) < 2) "" else if (res_cor[1, 2] > 0.3)
+                         sprintf(" I residui di %s restano correlati (%.2f): c'è un fattore comune oltre a quello di mercato.", paste(ys, collapse = " e "), res_cor[1, 2])
+                       else sprintf(" Correlazione dei residui di %s bassa (%.2f): il mercato spiega quasi tutto il legame.", paste(ys, collapse = " e "), res_cor[1, 2])),
     verdict = "MULTIVARIATE",
     summary = list(ui_item(paste("Beta", ys[1], "su", bench), fmt_num(b, 2)),
                    ui_item("Correlazione dei residui", if (length(ys) > 1) fmt_num(res_cor[1, 2], 2) else "—")),

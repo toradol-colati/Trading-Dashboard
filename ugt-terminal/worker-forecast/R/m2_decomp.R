@@ -120,7 +120,7 @@ m2_asset <- function(con, asset) {
   has_vol <- any(w$volume > 0)
   stl_v <- if (has_vol) w |> model(STL(log1p(volume) ~ trend(window = 13) + season(period = 52), robust = TRUE)) |> components() else NULL
 
-  # Rolling Guerrero lambda on 52-week windows: how the right transform drifts with volatility regimes
+  # Rolling Guerrero lambda on 104-week (2-year) windows: how the right transform drifts with volatility regimes
   ends <- seq(104, nrow(w), by = 4)
   roll_lambda <- vapply(ends, function(e) {
     sub <- w[(e - 103):e, ]
@@ -153,7 +153,11 @@ m2_asset <- function(con, asset) {
   close <- df$close
   ch7 <- tail(close, 1) / close[length(close) - 7] - 1
   ch30 <- tail(close, 1) / close[length(close) - 30] - 1
-  trend_slope_4w <- exp(4 * (tail(stl_p$trend, 1) - stl_p$trend[nrow(stl_p) - 1])) - 1
+  # Trend direction: change of the STL trend-cycle over the last 4 weeks (not one week times 4).
+  # Below a flat band the verdict is TREND_FLAT; the end of an STL trend is the least reliable part.
+  trend_slope_4w <- exp(tail(stl_p$trend, 1) - stl_p$trend[nrow(stl_p) - 4]) - 1
+  flat_band <- as.numeric(Sys.getenv("M2_FLAT_BAND", "0.02"))
+  trend_verdict <- if (trend_slope_4w > flat_band) "TREND_UP" else if (trend_slope_4w < -flat_band) "TREND_DOWN" else "TREND_FLAT"
   weeks <- as.character(w$day)
 
   charts <- list(
@@ -172,11 +176,11 @@ m2_asset <- function(con, asset) {
     headline = sprintf("%s: %d rotture strutturali nel trend; lambda di Guerrero %.2f (%s); trend-ciclo a 4 settimane %s, prezzo 7g %s e 30g %s.",
                        sym, nb, lambda, if (abs(lambda) < 0.5) "vicino al log, che resta adeguato" else "lontano dal log: la varianza non cresce col livello come assume il log",
                        fmt_pct(trend_slope_4w), fmt_pct(ch7), fmt_pct(ch30)),
-    verdict = if (trend_slope_4w > 0) "TREND_UP" else "TREND_DOWN",
+    verdict = trend_verdict,
     summary = list(
       ui_item("Variazione 7g", fmt_pct(ch7), NULL, if (ch7 >= 0) "good" else "bad"),
       ui_item("Variazione 30g", fmt_pct(ch30), NULL, if (ch30 >= 0) "good" else "bad"),
-      ui_item("Trend-ciclo 4 settimane", fmt_pct(trend_slope_4w), "pendenza del trend STL"),
+      ui_item("Trend-ciclo 4 settimane", fmt_pct(trend_slope_4w), sprintf("variazione del trend STL; piatto entro ±%s", fmt_pct(flat_band, 0))),
       ui_item("Lambda Guerrero", fmt_num(lambda, 2), "Box-Cox ottimale sull'intera storia"),
       ui_item("Lambda ultimi 2 anni", fmt_num(tail(roll_lambda, 1), 2)),
       ui_item("Rotture strutturali", as.character(nb), if (nb) paste(as.character(w$day[bp$breakpoints]), collapse = ", ") else "nessuna")
@@ -185,6 +189,9 @@ m2_asset <- function(con, asset) {
     tables = list(ui_table("Segmenti del trend a tratti", seg_slopes)),
     notes = list(
       "Rotture strutturali: test di Bai-Perron sul trend lineare del log prezzo settimanale, numero di rotture scelto col BIC (segmento minimo 10% del campione).",
+      "Attenzione: Bai-Perron presuppone errori stazionari attorno al trend, ma il log prezzo ha radice unitaria (M1). Le date di rottura sono indicazioni, non prove.",
+      "Il verdetto di trend usa la variazione del trend STL nelle ultime 4 settimane, con una fascia 'piatto'. La fine del trend STL è la parte meno affidabile.",
+      "Stagionalità a 52 settimane sulle crypto: se la forza stagionale è bassa va ignorata.",
       "Il trend a tratti è un TSLM con nodi (spline lineare) nelle date di rottura.",
       "Lambda di Guerrero vicino a 0 = il log è la trasformazione giusta; se cambia nel tempo, cambia il regime di volatilità."
     )

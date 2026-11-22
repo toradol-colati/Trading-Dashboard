@@ -98,7 +98,8 @@ m1_asset <- function(con, asset) {
               if (x$lb$p.value < 0.05) "warn" else "good"),
       ui_item("Ljung-Box rendimenti²", fmt_p(x$lb2$p.value), "effetto ARCH: volatilità a grappoli",
               if (x$lb2$p.value < 0.05) "warn" else "good"),
-      ui_item("Finestre inefficienti", fmt_pct(x$share_ineff), sprintf("quota di finestre da %d giorni con p < 0.05", M1_WINDOW))
+      ui_item("Finestre inefficienti", fmt_pct(x$share_ineff), sprintf("finestre da %d giorni con p < 0.05; circa 5%% è atteso per puro caso", M1_WINDOW),
+              if (x$share_ineff > 0.10) "warn" else NULL)
     ),
     charts = list(
       ui_chart(sprintf("Radar di efficienza: p-value Ljung-Box su finestre mobili di %d giorni", M1_WINDOW),
@@ -110,7 +111,8 @@ m1_asset <- function(con, asset) {
       "ADF: H0 radice unitaria (rifiuto = stazionaria). KPSS: H0 stazionaria (rifiuto = radice unitaria). Si leggono insieme.",
       "Livelli stazionari suggeriscono mean-reversion; radice unitaria suggerisce trend-following sul prezzo e analisi sui rendimenti.",
       "Ljung-Box sui rendimenti: p < 0.05 vuol dire autocorrelazione, quindi una parte del movimento è prevedibile (mercato meno efficiente).",
-      "Lag dell'ADF scelti con AIC fino a 10; KPSS con lag 'short'."
+      "Lag dell'ADF scelti con AIC fino a 10; KPSS con lag 'short'.",
+      "Radar: con soglia 0.05 circa il 5% delle finestre risulta inefficiente anche in un mercato perfettamente efficiente. Conta solo una quota chiaramente superiore (oltre il 10%) o periodi lunghi consecutivi."
     )
   )
 }
@@ -120,35 +122,53 @@ m1_spread <- function(con, pair) {
   ys <- split_asset(pair[1])$symbol; xs <- split_asset(pair[2])$symbol
   fit <- lm(w[[ys]] ~ w[[xs]])
   beta <- unname(coef(fit)[2])
-  spread <- w[[ys]] - beta * w[[xs]]
+  spread <- unname(residuals(fit))
   x <- radar_series(w$day, spread, "spread")
+  # radar_series labels its rows "log price" / "log return": here they are the spread and its changes.
+  x$tests$series <- ifelse(x$tests$series == "log price", "spread", "spread change")
 
+  # The spread comes from an estimated regression: use Engle-Granger critical values, not the ADF ones.
+  eg <- eg_test(spread, 2)
+  kpss_rej <- x$tests$reject_h0[x$tests$series == "spread" & x$tests$test == "KPSS (mu)"]
+  lv <- unit_root_verdict(eg$reject, kpss_rej)
+  style <- switch(lv, STATIONARY = "MEAN_REVERSION", UNIT_ROOT = "TREND_FOLLOWING", "UNCLEAR")
+  tests <- rbind(x$tests, data.frame(series = "spread", test = "Engle-Granger (ADF none)", statistic = eg$stat,
+                                     crit_5pct = eg$crit, reject_h0 = eg$reject, h0 = "no cointegration", stringsAsFactors = FALSE))
+
+  # Unit Root Monitor: in every window the hedge ratio is re-estimated with that window's data only (no look-ahead).
   ends <- seq(M1_ADF_WINDOW, length(spread), by = 10)
-  roll_adf <- data.frame(day = w$day[ends], p = vapply(ends, function(e) {
-    suppressWarnings(tseries::adf.test(spread[(e - M1_ADF_WINDOW + 1):e])$p.value)
-  }, 0))
-  share_mr <- mean(roll_adf$p < 0.05)
+  roll <- do.call(rbind, lapply(ends, function(e) {
+    i <- (e - M1_ADF_WINDOW + 1):e
+    f <- lm(w[[ys]][i] ~ w[[xs]][i])
+    t <- eg_test(unname(residuals(f)), 2)
+    data.frame(day = w$day[e], stat = t$stat, crit = t$crit, beta = unname(coef(f)[2]))
+  }))
+  share_mr <- mean(roll$stat < roll$crit)
 
   module_result(
-    headline = sprintf("Spread %s − %.2f·%s: %s; nelle finestre da %d giorni è stazionario il %s delle volte.",
-                       ys, beta, xs, verdict_it(x$level_verdict), M1_ADF_WINDOW, fmt_pct(share_mr)),
-    verdict = x$style,
+    headline = sprintf("Spread %s − %.2f·%s: %s (test di Engle-Granger); nelle finestre da %d giorni, con hedge ratio stimato in ogni finestra, è stazionario il %s delle volte.",
+                       ys, beta, xs, verdict_it(lv), M1_ADF_WINDOW, fmt_pct(share_mr)),
+    verdict = style,
     summary = list(
-      ui_item("Hedge ratio (OLS)", fmt_num(beta, 3), sprintf("log %s su log %s", ys, xs)),
-      ui_item("Spread", x$level_verdict, "ADF con drift vs KPSS (mu)"),
-      ui_item("Setup suggerito", x$style),
-      ui_item("Finestre stazionarie", fmt_pct(share_mr), "ADF p < 0.05 su finestre mobili"),
-      ui_item("ADF ultima finestra", fmt_p(tail(roll_adf$p, 1)))
+      ui_item("Hedge ratio (OLS)", fmt_num(beta, 3), sprintf("log %s su log %s, tutto il campione", ys, xs)),
+      ui_item("Hedge ratio ultima finestra", fmt_num(tail(roll$beta, 1), 3), sprintf("ultimi %d giorni", M1_ADF_WINDOW)),
+      ui_item("Spread", lv, "Engle-Granger vs KPSS (mu)", if (lv == "AMBIGUOUS") "warn" else NULL),
+      ui_item("Setup suggerito", style),
+      ui_item("Finestre stazionarie", fmt_pct(share_mr), "statistica sotto il valore critico di Engle-Granger"),
+      ui_item("Ultima finestra", sprintf("%.2f vs %.2f", tail(roll$stat, 1), tail(roll$crit, 1)), "statistica vs critico 5%")
     ),
     charts = list(
-      ui_chart("Spread", w$day, list(ui_line("spread", spread), ui_line("media", rep(mean(spread), length(spread))))),
-      ui_chart(sprintf("Unit Root Monitor: p-value ADF su finestre mobili di %d giorni", M1_ADF_WINDOW),
-               roll_adf$day, list(ui_line("p-value ADF", roll_adf$p), ui_line("soglia 0.05", rep(0.05, nrow(roll_adf)))))
+      ui_chart("Spread (residuo della regressione)", w$day, list(ui_line("spread", spread), ui_line("zero", rep(0, length(spread))))),
+      ui_chart(sprintf("Unit Root Monitor: statistica Engle-Granger su finestre mobili di %d giorni", M1_ADF_WINDOW),
+               roll$day, list(ui_line("statistica", roll$stat), ui_line("critico 5%", roll$crit))),
+      ui_chart("Hedge ratio stimato in ogni finestra", roll$day, list(ui_line("beta", roll$beta), ui_line("beta tutto il campione", rep(beta, nrow(roll)))))
     ),
-    tables = list(ui_table("Test di radice unitaria sullo spread", x$tests)),
+    tables = list(ui_table("Test sullo spread", tests)),
     notes = list(
       "Lo spread è il residuo della regressione dei log prezzi: se è stazionario la coppia torna verso l'equilibrio (base per lo stat-arb di M7).",
-      "Il test di cointegrazione vero e proprio (Johansen) è nel modulo M7."
+      "Poiché il beta è stimato dagli stessi dati, il test usa i valori critici di Engle-Granger (MacKinnon 2010), più severi di quelli dell'ADF.",
+      "Nelle finestre mobili il beta è ristimato con i soli dati della finestra: nessuna informazione dal futuro.",
+      "Il test di cointegrazione di Johansen è nel modulo M7."
     )
   )
 }
