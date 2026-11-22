@@ -66,7 +66,7 @@ m3_asset <- function(con, asset) {
       QS90 = function(...) quantile_score(..., probs = 0.9),
       CRPS = CRPS
     )) |>
-    select(-any_of(c(".type", "symbol"))) |>
+    dplyr::select(-any_of(c(".type", "symbol"))) |>
     arrange(CRPS)
   best <- acc$.model[1]
 
@@ -75,8 +75,8 @@ m3_asset <- function(con, asset) {
     hilo(level = c(80, 95)) |>
     unpack_hilo(c(`80%`, `95%`)) |>
     as_tibble() |>
-    select(-close) |>
-    left_join(as_tibble(y) |> select(all_of(c(index_var(y), "close"))) |> rename(actual = close), by = index_var(y)) |>
+    dplyr::select(-close) |>
+    left_join(as_tibble(y) |> dplyr::select(all_of(c(index_var(y), "close"))) |> rename(actual = close), by = index_var(y)) |>
     group_by(.model) |>
     summarise(coverage80 = mean(actual >= `80%_lower` & actual <= `80%_upper`, na.rm = TRUE),
               coverage95 = mean(actual >= `95%_lower` & actual <= `95%_upper`, na.rm = TRUE), .groups = "drop")
