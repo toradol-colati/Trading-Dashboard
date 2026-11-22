@@ -1,16 +1,15 @@
 # ─────────────────────────────────────────────────────────────
-# UGT forecast engine (worker-forecast), M0 skeleton.
+# UGT forecast engine (worker-forecast).
 #
-# Once a day (and at start-up) for each symbol:
-#   1. read daily closes from market_daily
-#   2. fit the course benchmarks (NAIVE, drift) plus ETS and ARIMA on log prices
-#   3. forecast 7 days ahead with 80% and 95% intervals
-#   4. write one row to forecast_results (module "M0_smoke") and every
-#      point to forecast_log, so live out-of-sample scoring (M6) has history.
+# Once a day (and at start-up) every module runs in order. Each module writes
+# one row per subject to forecast_results; a failure is written with status
+# "error" and its message, never hidden. FORECAST_LAB shows the latest row of
+# every module and subject.
 #
-# Failures are written to forecast_results with status "error": never silent.
-# Later modules (M1 Radar, M2 decomposition, M3 Risk Engine, ...) are added
-# as new files in R/ and called from run_all().
+#   M0  smoke forecast (benchmarks, ETS, ARIMA)          R/m0_smoke.R
+#   M1  stationarity and efficiency radar                R/m1_radar.R
+#
+# FORECAST_MODULES (comma separated, e.g. "M1,M3") limits which modules run.
 # ─────────────────────────────────────────────────────────────
 
 suppressPackageStartupMessages({
@@ -22,84 +21,26 @@ suppressPackageStartupMessages({
   library(jsonlite)
 })
 
-source("R/db.R")
+for (f in c("R/util.R", "R/db.R", "R/data.R", sort(Sys.glob("R/m[0-9]*_*.R")))) source(f)
 
-SYMBOLS <- trimws(strsplit(Sys.getenv("FORECAST_SYMBOLS", "binance:BTCUSDT,binance:ETHUSDT"), ",")[[1]])
-HORIZON <- as.integer(Sys.getenv("FORECAST_HORIZON_DAYS", "7"))
-TRAIN_DAYS <- as.integer(Sys.getenv("FORECAST_TRAIN_DAYS", "1095"))
 RUN_HOUR_UTC <- as.integer(Sys.getenv("FORECAST_RUN_HOUR_UTC", "1"))
 
-log_msg <- function(...) {
-  cat(format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"), "worker-forecast", ..., "\n")
-  flush.console()
-}
+MODULES <- list(
+  M0 = function(con) run_m0(con),
+  M1 = function(con) run_m1(con)
+)
 
-heartbeat <- function() writeLines(format(Sys.time(), tz = "UTC"), "/tmp/heartbeat")
-
-smoke_forecast <- function(con, source, symbol) {
-  hist <- dbGetQuery(con, "
-      SELECT day, close FROM market_daily
-      WHERE source = $1 AND symbol = $2
-      ORDER BY day DESC LIMIT $3", params = list(source, symbol, TRAIN_DAYS))
-  if (nrow(hist) < 60) {
-    stop(sprintf("only %d daily rows for %s:%s in market_daily (need 60): is worker-recorder collecting history?",
-                 nrow(hist), source, symbol))
-  }
-  y <- hist |>
-    mutate(day = as.Date(day)) |>
-    arrange(day) |>
-    as_tsibble(index = day) |>
-    fill_gaps() |>
-    tidyr::fill(close, .direction = "down")
-
-  fit <- y |> model(
-    naive = NAIVE(log(close)),
-    drift = RW(log(close) ~ drift()),
-    ets   = ETS(log(close)),
-    arima = ARIMA(log(close))
-  )
-  fc <- fit |> forecast(h = HORIZON)
-  iv <- fc |>
-    hilo(level = c(80, 95)) |>
-    unpack_hilo(c(`80%`, `95%`)) |>
-    as_tibble() |>
-    group_by(.model) |>
-    mutate(horizon = row_number()) |>
-    ungroup() |>
-    transmute(model = .model, horizon, target_date = day, point = .mean,
-              lo80 = `80%_lower`, hi80 = `80%_upper`, lo95 = `95%_lower`, hi95 = `95%_upper`)
-
-  issued_on <- max(y$day)
-  list(
-    issued_on = issued_on,
-    rows = iv,
-    result = list(
-      last_day = as.character(issued_on),
-      last_close = tail(y$close, 1),
-      n_obs = nrow(y),
-      models = lapply(setdiff(names(fit), key_vars(fit)), function(m) list(model = m, spec = format(fit[[m]][[1]]))),
-      forecasts = iv |> mutate(target_date = as.character(target_date))
-    )
-  )
+enabled_modules <- function() {
+  sel <- trimws(strsplit(Sys.getenv("FORECAST_MODULES", ""), ",")[[1]])
+  if (length(sel) == 0 || all(sel == "")) names(MODULES) else intersect(names(MODULES), sel)
 }
 
 run_all <- function() {
   con <- db_connect()
   on.exit(dbDisconnect(con), add = TRUE)
-  for (s in SYMBOLS) {
-    parts <- strsplit(s, ":")[[1]]
-    source <- parts[1]; symbol <- parts[2]
-    params <- list(source = source, horizon = HORIZON, train_days = TRAIN_DAYS,
-                   models = c("NAIVE", "RW drift", "ETS", "ARIMA"), transform = "log")
-    out <- tryCatch(smoke_forecast(con, source, symbol), error = function(e) e)
-    if (inherits(out, "error")) {
-      log_msg("ERROR", symbol, conditionMessage(out))
-      write_result(con, "M0_smoke", symbol, "error", params, list(error = conditionMessage(out)))
-    } else {
-      write_result(con, "M0_smoke", symbol, "ok", params, out$result)
-      write_forecast_log(con, symbol, out$issued_on, out$rows)
-      log_msg("ok", symbol, "issued_on", as.character(out$issued_on), nrow(out$rows), "points")
-    }
+  for (m in enabled_modules()) {
+    heartbeat()
+    tryCatch(MODULES[[m]](con), error = function(e) log_msg("ERROR module", m, conditionMessage(e)))
   }
 }
 
@@ -111,7 +52,7 @@ seconds_until_next_run <- function(now = Sys.time()) {
 }
 
 main <- function() {
-  log_msg("starting; symbols:", paste(SYMBOLS, collapse = ", "))
+  log_msg("starting; modules:", paste(enabled_modules(), collapse = ", "))
   wait_for_schema()
   repeat {
     heartbeat()

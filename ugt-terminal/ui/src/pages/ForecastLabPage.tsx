@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { Area, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { OfflineNotice, StandbyPanel, TerminalCard } from '../components/Shared';
+import { ModuleView } from '../components/ModuleView';
 
 // FORECAST_LAB (M0): real data only. Every gap is shown as a gap, every failed
 // collector run is shown in red with its error message.
@@ -25,6 +26,19 @@ type ForecastResult = {
 };
 
 const MODELS = ['naive', 'drift', 'ets', 'arima'] as const;
+
+// One tab per module of the plan. M0 has its own view; the others use the generic ModuleView.
+const MODULE_TABS = [
+  { id: 'M0_smoke', label: 'M0 · DATI', title: 'M0 · DATA + SMOKE FORECAST' },
+  { id: 'M1_radar', label: 'M1 · RADAR', title: 'M1 · RADAR DI STAZIONARIETÀ ED EFFICIENZA' },
+  { id: 'M2_decomp', label: 'M2 · DECOMP', title: 'M2 · DECOMPOSIZIONE, CICLI, ROTTURE' },
+  { id: 'M3_risk', label: 'M3 · RISK', title: 'M3 · RISK ENGINE' },
+  { id: 'M4_kalman', label: 'M4 · KALMAN', title: 'M4 · KALMAN' },
+  { id: 'M5_scenari', label: 'M5 · SCENARI', title: 'M5 · SCENARI, EVENTI, REGIMI' },
+  { id: 'M6_scoreboard', label: 'M6 · SCORE', title: 'M6 · SCOREBOARD' },
+  { id: 'M7_quant', label: 'M7 · QUANT', title: 'M7 · QUANT AVANZATO' },
+  { id: 'M8_tail', label: 'M8 · TAIL', title: 'M8 · RISCHIO ESTREMO ED ESECUZIONE' },
+] as const;
 const day = (v: string | null | undefined) => (v ? String(v).slice(0, 10) : '—');
 const fmt = (v: number | null | undefined) =>
   v === null || v === undefined || Number.isNaN(Number(v)) ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -42,6 +56,21 @@ export const ForecastLabPage = ({ isWidget }: { isWidget?: boolean }) => {
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [model, setModel] = useState<(typeof MODELS)[number]>('ets');
   const [apiError, setApiError] = useState<string | null>(null);
+  const [tab, setTab] = useState<string>(() => {
+    try {
+      return localStorage.getItem('ugt.forecastlab.tab') || 'M0_smoke';
+    } catch {
+      return 'M0_smoke';
+    }
+  });
+  const selectTab = (id: string) => {
+    setTab(id);
+    try {
+      localStorage.setItem('ugt.forecastlab.tab', id);
+    } catch {
+      /* per-browser convenience only */
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +137,18 @@ export const ForecastLabPage = ({ isWidget }: { isWidget?: boolean }) => {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-1 text-[9px] uppercase tracking-widest border-b border-white/5 pb-2">
+        {MODULE_TABS.map((t) => (
+          <button key={t.id} onClick={() => selectTab(t.id)}
+            className={clsx('px-2 py-1 border', t.id === tab ? 'border-neoGreen text-neoGreen bg-neoGreen/5' : 'border-[#1f1f1f] text-[#606060] hover:text-white')}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab !== 'M0_smoke' ? (
+        <ModuleView key={tab} module={tab} title={MODULE_TABS.find((t) => t.id === tab)?.title || tab} isWidget={isWidget} />
+      ) : (
       <div className={clsx('grid gap-4', isWidget ? 'grid-cols-1 xl:grid-cols-3' : 'grid-cols-1 lg:grid-cols-3')}>
         <TerminalCard title="M0_SMOKE_FORECAST · 7D" className="lg:col-span-2 xl:col-span-2">
           <div className="flex flex-wrap items-center gap-2 mb-3 text-[9px] uppercase tracking-widest">
@@ -185,6 +226,7 @@ export const ForecastLabPage = ({ isWidget }: { isWidget?: boolean }) => {
           )}
         </TerminalCard>
       </div>
+      )}
     </div>
   );
 };
