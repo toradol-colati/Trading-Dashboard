@@ -55,7 +55,13 @@ function htmlTable(t: Table): string {
     <tbody>${rows.map((r) => `<tr>${arr<unknown>(r).map((v) => `<td>${esc(v) || '—'}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
 
-function subjectBlock(symbol: string, status: string, computedAt: string, r: Result): string {
+// pg returns timestamptz as a Date: String(Date) would give 'Sun Nov 22 2026 ...'.
+const stamp = (v: unknown) => {
+  const d = v instanceof Date ? v : new Date(String(v));
+  return Number.isNaN(d.getTime()) ? String(v) : d.toISOString().slice(0, 16).replace('T', ' ');
+};
+
+function subjectBlock(symbol: string, status: string, computedAt: unknown, r: Result): string {
   if (status === 'error') {
     return `<section class="subject err"><h3>${esc(symbol)}</h3><p>Errore: ${esc(r.error)}</p></section>`;
   }
@@ -66,7 +72,7 @@ function subjectBlock(symbol: string, status: string, computedAt: string, r: Res
     ${arr<Chart>(r.charts).slice(0, 2).map(svgChart).join('')}
     ${arr<Table>(r.tables).map(htmlTable).join('')}
     ${arr<unknown>(r.notes).length ? `<ul class="notes">${arr<unknown>(r.notes).map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
-    <div class="meta">Calcolato ${esc(String(computedAt).slice(0, 16).replace('T', ' '))} UTC</div></section>`;
+    <div class="meta">Calcolato ${esc(stamp(computedAt))} UTC</div></section>`;
 }
 
 const reportRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
