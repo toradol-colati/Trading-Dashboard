@@ -38,7 +38,7 @@ write_result <- function(con, module, symbol, status, params, result) {
       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)",
     params = list(module, symbol, status,
                   as.character(jsonlite::toJSON(params, auto_unbox = TRUE)),
-                  as.character(jsonlite::toJSON(result, auto_unbox = TRUE, digits = NA, na = "null"))))
+                  as.character(jsonlite::toJSON(result, auto_unbox = TRUE, digits = NA, na = "null", null = "null"))))
 }
 
 write_forecast_log <- function(con, symbol, issued_on, rows) {
