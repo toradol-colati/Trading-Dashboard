@@ -14,6 +14,7 @@
 #   M5  scenarios, sentiment, FED events, Fourier, HMM    R/m5_scenari.R
 #   M6  scoreboard of the saved forecasts                R/m6_scoreboard.R
 #   M7  GARCH family, Johansen + OU, PCA, regressions     R/m7_quant.R
+#   M8  copulas, portfolio stress, Hawkes                 R/m8_tail.R
 #
 # FORECAST_MODULES (comma separated, e.g. "M1,M3") limits which modules run.
 # ─────────────────────────────────────────────────────────────
@@ -39,7 +40,8 @@ MODULES <- list(
   M4 = function(con) run_m4(con),
   M5 = function(con) run_m5(con),
   M6 = function(con) run_m6(con),
-  M7 = function(con) run_m7(con)
+  M7 = function(con) run_m7(con),
+  M8 = function(con) run_m8(con)
 )
 
 enabled_modules <- function() {
