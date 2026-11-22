@@ -9,6 +9,7 @@
 #   M0  smoke forecast (benchmarks, ETS, ARIMA)          R/m0_smoke.R
 #   M1  stationarity and efficiency radar                R/m1_radar.R
 #   M2  decomposition, cycles, structural breaks         R/m2_decomp.R
+#   M3  risk engine: CV, intervals, TP/SL, EWMA, VaR      R/m3_risk.R
 #
 # FORECAST_MODULES (comma separated, e.g. "M1,M3") limits which modules run.
 # ─────────────────────────────────────────────────────────────
@@ -29,7 +30,8 @@ RUN_HOUR_UTC <- as.integer(Sys.getenv("FORECAST_RUN_HOUR_UTC", "1"))
 MODULES <- list(
   M0 = function(con) run_m0(con),
   M1 = function(con) run_m1(con),
-  M2 = function(con) run_m2(con)
+  M2 = function(con) run_m2(con),
+  M3 = function(con) run_m3(con)
 )
 
 enabled_modules <- function() {
