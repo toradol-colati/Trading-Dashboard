@@ -1,0 +1,19 @@
+# R environment for the UGT forecast engine (fpp3 tools used in the course).
+# Binary packages from conda-forge: same build on the Mac, the laptop server or a VPS.
+name: base
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.4
+  - r-fable=0.5
+  - r-fabletools=0.8
+  - r-feasts=0.5
+  - r-tsibble=1.2
+  - r-urca
+  - r-dplyr
+  - r-tidyr
+  - r-lubridate
+  - r-dbi
+  - r-rpostgres
+  - r-jsonlite
+  - r-distributional

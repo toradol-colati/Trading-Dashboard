@@ -8,6 +8,7 @@ import {
   Maximize2,
   Newspaper,
   Settings,
+  TrendingUp,
   Terminal as TerminalIcon,
   Wallet,
   X
@@ -21,6 +22,7 @@ import { PricesPage } from './pages/PricesPage'
 import { DecisionPage } from './pages/DecisionPage'
 import { PortfolioPage } from './pages/PortfolioPage'
 import { PacPage } from './pages/PacPage'
+import { ForecastLabPage } from './pages/ForecastLabPage'
 
 const ResponsiveGrid = RGL.Responsive
 const WidthProvider = RGL.WidthProvider
@@ -75,6 +77,8 @@ function App() {
     { i: 'decision', x: 6, y: 4, w: 6, h: 5 },
     { i: 'portfolio', x: 0, y: 6, w: 4, h: 3 },
     { i: 'pac', x: 4, y: 6, w: 2, h: 3 },
+    // New in M0: placed below the existing windows, which keep their positions
+    { i: 'forecast', x: 0, y: 9, w: 12, h: 7 },
   ]
 
   const layouts = {
@@ -91,6 +95,7 @@ function App() {
     { id: 'decision', title: 'STRATEGIC_DECISION', component: DecisionPage, icon: LayoutDashboard },
     { id: 'portfolio', title: 'BROKER_PORTFOLIO', component: PortfolioPage, icon: Wallet },
     { id: 'pac', title: 'PAC_ENGINE', component: PacPage, icon: CalendarClock },
+    { id: 'forecast', title: 'FORECAST_LAB', component: ForecastLabPage, icon: TrendingUp },
   ]
 
   const expandedWidget = useMemo(

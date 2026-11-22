@@ -114,6 +114,26 @@ services:
       timeout: 10s
       retries: 3
 
+  # ── M0: data foundations (prices, hourly sentiment, daily history) ──
+  worker-recorder:
+    build: ./worker-recorder
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+      CONTROL_PORT: "8004"
+    depends_on:
+      api: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  # ── M0: R forecast engine (fable / fpp3) ──
+  worker-forecast:
+    build: ./worker-forecast
+    restart: unless-stopped
+    environment:
+      <<: *common-env
+    depends_on:
+      api: { condition: service_healthy }
+
   ui:
     build: ./ui
     restart: unless-stopped

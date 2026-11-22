@@ -14,6 +14,7 @@ const systemRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       // Fetch heartbeats
       const dataWorkerStatus = await redis.get("status:worker-data").then(v => v ? JSON.parse(v) : null);
       const nlpWorkerStatus = await redis.get("status:worker-nlp").then(v => v ? JSON.parse(v) : null);
+      const recorderStatus = await redis.get("status:worker-recorder").then(v => v ? JSON.parse(v) : null);
       
       return {
         timestamp: new Date().toISOString(),
@@ -25,13 +26,16 @@ const systemRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
           api: 'OK',
           'worker-data': dataWorkerStatus ? 'OK' : 'UNKNOWN',
           'worker-nlp': nlpWorkerStatus ? 'OK' : 'UNKNOWN',
+          // the recorder reports its failing jobs: show them instead of a generic OK
+          'worker-recorder': !recorderStatus ? 'UNKNOWN' : recorderStatus.failing_jobs?.length ? 'DEGRADED' : 'OK',
           // worker-broker publishes no heartbeat yet: never report a status we have not checked
           'worker-broker': 'UNKNOWN'
         },
         active_sources_count: (dataWorkerStatus?.active_sources_count || 0) + (nlpWorkerStatus?.active_sources_count || 0),
         details: {
           data: dataWorkerStatus,
-          nlp: nlpWorkerStatus
+          nlp: nlpWorkerStatus,
+          recorder: recorderStatus
         }
       };
     } catch (err: any) {
