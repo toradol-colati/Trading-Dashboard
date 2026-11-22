@@ -11,6 +11,7 @@
 #   M2  decomposition, cycles, structural breaks         R/m2_decomp.R
 #   M3  risk engine: CV, intervals, TP/SL, EWMA, VaR      R/m3_risk.R
 #   M4  Kalman: level, trend, cycle, dynamic beta         R/m4_kalman.R
+#   M5  scenarios, sentiment, FED events, Fourier, HMM    R/m5_scenari.R
 #
 # FORECAST_MODULES (comma separated, e.g. "M1,M3") limits which modules run.
 # ─────────────────────────────────────────────────────────────
@@ -33,7 +34,8 @@ MODULES <- list(
   M1 = function(con) run_m1(con),
   M2 = function(con) run_m2(con),
   M3 = function(con) run_m3(con),
-  M4 = function(con) run_m4(con)
+  M4 = function(con) run_m4(con),
+  M5 = function(con) run_m5(con)
 )
 
 enabled_modules <- function() {
