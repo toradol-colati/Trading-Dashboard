@@ -27,6 +27,8 @@ const COLORS = ['#00ff41', '#8fb0ff', '#ffb800', '#ff6ec7', '#5ee6ff', '#ff3e3e'
 const toneClass = (tone?: Tone) =>
   tone === 'good' ? 'text-neoGreen' : tone === 'bad' ? 'text-[#ff3e3e]' : tone === 'warn' ? 'text-[#ffb800]' : 'text-white';
 const asArray = <T,>(v: T[] | T | null | undefined): T[] => (Array.isArray(v) ? v : v ? [v] : []);
+// Only text and numbers are rendered: anything else (an empty object from a NULL in R) shows as nothing.
+const txt = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' && Number.isFinite(v) ? String(v) : '');
 
 export const ModuleChart = ({ chart, compact }: { chart: Chart; compact?: boolean }) => {
   const data = useMemo(() => {
@@ -49,7 +51,7 @@ export const ModuleChart = ({ chart, compact }: { chart: Chart; compact?: boolea
 
   return (
     <div className="border border-white/5 bg-white/[0.02] p-2">
-      <div className="text-[9px] uppercase tracking-widest text-[#606060] mb-1">{chart.title}</div>
+      <div className="text-[9px] uppercase tracking-widest text-[#606060] mb-1">{txt(chart.title)}</div>
       <div className={compact ? 'h-40' : 'h-56'}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
@@ -71,7 +73,7 @@ export const ModuleChart = ({ chart, compact }: { chart: Chart; compact?: boolea
       </div>
       <div className="flex flex-wrap gap-3 mt-1 text-[8px] uppercase tracking-widest">
         {asArray(chart.series).map((s, k) => (
-          <span key={k} style={{ color: COLORS[k % COLORS.length] }}>■ {s.name}</span>
+          <span key={k} style={{ color: COLORS[k % COLORS.length] }}>■ {txt(s.name)}</span>
         ))}
       </div>
     </div>
@@ -80,12 +82,12 @@ export const ModuleChart = ({ chart, compact }: { chart: Chart; compact?: boolea
 
 const ModuleTable = ({ table }: { table: Table }) => (
   <div className="border border-white/5 bg-white/[0.02] p-2 overflow-x-auto">
-    <div className="text-[9px] uppercase tracking-widest text-[#606060] mb-1">{table.title}</div>
+    <div className="text-[9px] uppercase tracking-widest text-[#606060] mb-1">{txt(table.title)}</div>
     <table className="w-full text-[10px]">
       <thead>
         <tr>
           {asArray(table.columns).map((c) => (
-            <th key={c} className="text-left font-bold text-[#444] uppercase tracking-wider pr-3 pb-1">{c}</th>
+            <th key={txt(c)} className="text-left font-bold text-[#444] uppercase tracking-wider pr-3 pb-1">{txt(c)}</th>
           ))}
         </tr>
       </thead>
@@ -93,7 +95,7 @@ const ModuleTable = ({ table }: { table: Table }) => (
         {asArray(table.rows).map((r, i) => (
           <tr key={i} className="border-t border-white/5">
             {asArray(r).map((v, j) => (
-              <td key={j} className="pr-3 py-0.5 text-[#bbb] whitespace-nowrap">{v === null || v === undefined ? '—' : String(v)}</td>
+              <td key={j} className="pr-3 py-0.5 text-[#bbb] whitespace-nowrap">{txt(v) || '—'}</td>
             ))}
           </tr>
         ))}
@@ -107,7 +109,7 @@ export const ModuleResultView = ({ row, isWidget }: { row: Row; isWidget?: boole
     return (
       <div className="border border-[#ff3e3e]/40 bg-[#ff3e3e]/[0.06] px-3 py-2 text-[11px] text-[#ff9b9b]">
         <span className="font-bold tracking-[0.3em] text-[#ff3e3e] text-[10px]">MODULE_ERROR</span>
-        <div className="mt-1 break-words">{row.result?.error}</div>
+        <div className="mt-1 break-words">{txt(row.result?.error)}</div>
         <div className="mt-1 text-[9px] text-[#606060]">{String(row.computed_at).slice(0, 16).replace('T', ' ')}</div>
       </div>
     );
@@ -116,18 +118,18 @@ export const ModuleResultView = ({ row, isWidget }: { row: Row; isWidget?: boole
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start gap-3">
-        {r.verdict && (
-          <span className="shrink-0 text-[9px] font-bold px-2 py-1 border border-[#8fb0ff]/50 text-[#8fb0ff] tracking-widest">{r.verdict}</span>
+        {txt(r.verdict) && (
+          <span className="shrink-0 text-[9px] font-bold px-2 py-1 border border-[#8fb0ff]/50 text-[#8fb0ff] tracking-widest">{txt(r.verdict)}</span>
         )}
-        <p className="text-[12px] text-white leading-snug">{r.headline}</p>
+        <p className="text-[12px] text-white leading-snug">{txt(r.headline)}</p>
       </div>
       {asArray(r.summary).length > 0 && (
         <div className={clsx('grid gap-2', isWidget ? 'grid-cols-2 md:grid-cols-3 xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-6')}>
           {asArray(r.summary).map((s) => (
-            <div key={s.label} className="border border-white/5 bg-white/[0.02] p-2" title={s.hint || ''}>
-              <div className="text-[8px] uppercase tracking-widest text-[#606060]">{s.label}</div>
-              <div className={clsx('text-sm font-bold break-words', toneClass(s.tone))}>{s.value}</div>
-              {s.hint && <div className="text-[8px] text-[#444] truncate">{s.hint}</div>}
+            <div key={txt(s.label)} className="border border-white/5 bg-white/[0.02] p-2" title={txt(s.hint)}>
+              <div className="text-[8px] uppercase tracking-widest text-[#606060]">{txt(s.label)}</div>
+              <div className={clsx('text-sm font-bold break-words', toneClass(s.tone))}>{txt(s.value) || '—'}</div>
+              {txt(s.hint) && <div className="text-[8px] text-[#444] truncate">{txt(s.hint)}</div>}
             </div>
           ))}
         </div>
@@ -140,7 +142,7 @@ export const ModuleResultView = ({ row, isWidget }: { row: Row; isWidget?: boole
       {asArray(r.tables).map((t, i) => <ModuleTable key={i} table={t} />)}
       {asArray(r.notes).length > 0 && (
         <ul className="text-[9px] text-[#555] leading-relaxed list-disc pl-4">
-          {asArray(r.notes).map((n, i) => <li key={i}>{n}</li>)}
+          {asArray(r.notes).map((n, i) => <li key={i}>{txt(n)}</li>)}
         </ul>
       )}
       <div className="text-[8px] text-[#333] uppercase">computed {String(row.computed_at).slice(0, 16).replace('T', ' ')} UTC</div>
