@@ -10,6 +10,7 @@
 #   M1  stationarity and efficiency radar                R/m1_radar.R
 #   M2  decomposition, cycles, structural breaks         R/m2_decomp.R
 #   M3  risk engine: CV, intervals, TP/SL, EWMA, VaR      R/m3_risk.R
+#   M4  Kalman: level, trend, cycle, dynamic beta         R/m4_kalman.R
 #
 # FORECAST_MODULES (comma separated, e.g. "M1,M3") limits which modules run.
 # ─────────────────────────────────────────────────────────────
@@ -31,7 +32,8 @@ MODULES <- list(
   M0 = function(con) run_m0(con),
   M1 = function(con) run_m1(con),
   M2 = function(con) run_m2(con),
-  M3 = function(con) run_m3(con)
+  M3 = function(con) run_m3(con),
+  M4 = function(con) run_m4(con)
 )
 
 enabled_modules <- function() {
