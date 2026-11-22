@@ -62,7 +62,9 @@ m4_asset <- function(con, asset) {
   k_pred <- k_llt$a[1:n, 1]
   s20 <- c(NA, head(sma(y, 20), -1)); e20 <- c(NA, head(ema(y, 20), -1))
   ok <- 30:n
-  mse <- c(kalman = mean((y[ok] - k_pred[ok])^2), sma20 = mean((y[ok] - s20[ok])^2), ema20 = mean((y[ok] - e20[ok])^2))
+  naive <- c(NA, head(y, -1))
+  mse <- c(kalman = mean((y[ok] - k_pred[ok])^2), naive = mean((y[ok] - naive[ok])^2),
+           sma20 = mean((y[ok] - s20[ok])^2), ema20 = mean((y[ok] - e20[ok])^2))
   best <- names(which.min(mse))
 
   # Stochastic cycle on a smooth trend: pick the period with the highest likelihood
@@ -100,6 +102,7 @@ m4_asset <- function(con, asset) {
       ui_item("Ciclo stocastico", paste0(cbest$period, " giorni"), "periodo con la massima verosimiglianza"),
       ui_item("Fase del ciclo", phase),
       ui_item("MSE a un passo: Kalman", formatC(mse["kalman"], format = "e", digits = 2), NULL, if (best == "kalman") "good" else NULL),
+      ui_item("MSE a un passo: NAIVE", formatC(mse["naive"], format = "e", digits = 2), "valore di ieri: il benchmark da battere", if (best == "naive") "good" else NULL),
       ui_item("MSE a un passo: SMA20 / EMA20", paste(formatC(mse["sma20"], format = "e", digits = 2), "/", formatC(mse["ema20"], format = "e", digits = 2)))
     ),
     charts = list(
@@ -125,8 +128,10 @@ m4_asset <- function(con, asset) {
     notes = list(
       "Local level: prezzo = livello + rumore, il livello è un random walk. Local linear trend: si aggiunge una pendenza che evolve nel tempo.",
       "Filtro = stima con i dati fino a oggi (nowcast). Smoother RTS = stima con tutto il campione, più liscia ma usa il futuro: non va usata per i segnali.",
-      "Il confronto con SMA20 ed EMA20 usa per tutti solo i dati fino al giorno prima.",
-      "Ciclo stocastico: trend liscio più un ciclo smorzato; il periodo è scelto per massima verosimiglianza su una griglia."
+      "Il confronto con NAIVE, SMA20 ed EMA20 usa per tutti solo i dati fino al giorno prima. Le varianze del Kalman però sono stimate su tutto il periodo: un piccolo vantaggio.",
+      "Se il log prezzo è una passeggiata aleatoria, NAIVE è il predittore ottimo a un passo: se il Kalman non lo batte, il filtro sta solo seguendo il prezzo.",
+      "Ciclo stocastico: trend liscio più un ciclo; il periodo è scelto per massima verosimiglianza su una griglia.",
+      "Un modello con ciclo trova sempre un periodo 'migliore', anche senza cicli veri: confronta la loglik con quella del local linear trend nella tabella."
     )
   )
 }

@@ -91,3 +91,19 @@ run_subject <- function(con, module, subject, params, fn) {
   }
   invisible(out)
 }
+
+# Engle-Granger critical values for the ADF test on residuals of a cointegrating
+# regression with constant (MacKinnon 2010 response surfaces, 5% level):
+# c(T) = b_inf + b1 / T + b2 / T^2, by number of variables in the regression.
+EG_CRIT_5 <- list(`2` = c(-3.3377, -5.967, -8.98), `3` = c(-3.7429, -8.352, -13.41), `4` = c(-4.1193, -12.024, -13.13))
+eg_crit <- function(n_obs, n_vars) {
+  b <- EG_CRIT_5[[as.character(n_vars)]]
+  b[1] + b[2] / n_obs + b[3] / n_obs^2
+}
+# ADF without deterministic terms (urca::ur.df) on a regression residual, compared with Engle-Granger values.
+eg_test <- function(resid, n_vars) {
+  t <- urca::ur.df(resid, type = "none", lags = 10, selectlags = "AIC")
+  stat <- t@teststat[1, 1]
+  cv <- eg_crit(length(resid), n_vars)
+  list(stat = stat, crit = cv, reject = stat < cv)
+}

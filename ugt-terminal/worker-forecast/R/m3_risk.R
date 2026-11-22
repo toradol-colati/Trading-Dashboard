@@ -82,6 +82,24 @@ m3_asset <- function(con, asset) {
               coverage95 = mean(actual >= `95%_lower` & actual <= `95%_upper`, na.rm = TRUE), .groups = "drop")
   acc <- acc |> left_join(cov, by = ".model")
 
+  # The same check at the 7-day horizon only: TP and SL live there, and averaging 1-7 days hides it.
+  actual <- as_tibble(y) |> dplyr::select(all_of(c(index_var(y), "close"))) |> rename(actual = close)
+  acc7 <- fc_cv |>
+    hilo(level = 80) |>
+    unpack_hilo(`80%`) |>
+    as_tibble() |>
+    dplyr::select(-close) |>
+    group_by(.id, .model) |> mutate(h = row_number()) |> ungroup() |>
+    filter(h == M3_H) |>
+    left_join(actual, by = index_var(y)) |>
+    filter(!is.na(actual)) |>
+    group_by(.model) |>
+    summarise(n = n(), MAE = mean(abs(actual - .mean)),
+              coverage80 = mean(actual >= `80%_lower` & actual <= `80%_upper`),
+              winkler80 = mean((`80%_upper` - `80%_lower`) + 10 * pmax(`80%_lower` - actual, 0) + 10 * pmax(actual - `80%_upper`, 0)),
+              .groups = "drop") |>
+    arrange(winkler80)
+
   # 2. Forecast from the full window with every model; TP/SL from the best one
   fit <- y |> fit_models(season)
   fc <- fit |> forecast(h = M3_H)
@@ -150,6 +168,7 @@ m3_asset <- function(con, asset) {
     ),
     tables = list(
       ui_table(sprintf("Cross-validation a origine mobile: %d origini, orizzonte 1-7 giorni, ordinati per CRPS", n_folds), acc),
+      ui_table(sprintf("Solo orizzonte %d giorni: MAE, copertura e Winkler dell'intervallo 80%%, ordinati per Winkler", M3_H), acc7),
       ui_table(sprintf("Previsioni per quantili (%s)", toupper(best)), qtab)
     ),
     notes = list(
@@ -157,6 +176,8 @@ m3_asset <- function(con, asset) {
       "Tutti i modelli lavorano sul log prezzo; le previsioni sono riportate in prezzo (media corretta per il bias).",
       "Winkler score: ampiezza dell'intervallo più una penalità quando il prezzo esce; più basso è meglio. Quantile score (pinball) ai quantili 10% e 90%. CRPS valuta tutta la distribuzione.",
       "Take profit e stop loss sono i bordi dell'intervallo all'80% a 7 giorni del modello migliore: una soglia statistica, non un consiglio d'investimento.",
+      "Il rapporto rischio/rendimento sta quasi sempre poco sopra 1 per costruzione: gli intervalli sono simmetrici sul log, quindi in prezzo il bordo alto è un po' più lontano. Un valore come 1.05 non indica un'occasione.",
+      "VaR normale: sottostima le code grasse delle crypto. Per questo ci sono anche VaR storico ed ES, e in M7 il GARCH con errori t.",
       "Coverage: quota di prezzi reali finiti dentro l'intervallo. Un 80% ben calibrato dovrebbe stare vicino a 0.80."
     )
   )

@@ -38,11 +38,15 @@ fit_copulas <- function(U) {
   Filter(Negate(is.null), out)
 }
 
+# Returns divided by their EWMA volatility (lambda 0.94, as in M3): removes volatility clustering,
+# so the copula is estimated on roughly independent observations instead of raw returns.
+devol <- function(X) apply(X, 2, function(r) r / ewma_sigma(r))
+
 m8_copula <- function(con, pair) {
   syms <- vapply(pair, function(a) split_asset(a)$symbol, "")
   w <- aligned_returns(con, pair, days = 1500)
   X <- as.matrix(w[, syms])
-  U <- pobs(X)
+  U <- pobs(devol(X))
   fits <- fit_copulas(U)
   if (length(fits) == 0) stop("no copula could be fitted")
   tab <- do.call(rbind, lapply(fits, `[[`, "row")) |> arrange(AIC)
@@ -71,6 +75,7 @@ m8_copula <- function(con, pair) {
                   ui_table("Soglie del 5% peggiore", data.frame(asset = syms, rendimento_soglia = c(q1, q2)))),
     notes = list(
       "La copula separa la dipendenza dalle distribuzioni dei singoli asset: si stima sui ranghi (pseudo-osservazioni).",
+      "I rendimenti sono prima divisi per la loro volatilità EWMA (lambda 0.94): così i periodi agitati non gonfiano la dipendenza nelle code.",
       "Gaussiana: nessuna dipendenza nelle code. t: code simmetriche. Clayton: crolli insieme. Gumbel: rally insieme. Frank: nessuna coda.",
       "Il crollo congiunto misura quanto la diversificazione sparisce proprio nei giorni peggiori."
     )
@@ -81,7 +86,7 @@ m8_portfolio <- function(con) {
   w <- aligned_returns(con, ASSETS, days = 1500)
   syms <- vapply(ASSETS, function(a) split_asset(a)$symbol, "")
   X <- as.matrix(w[, syms]); d <- ncol(X)
-  U <- pobs(X)
+  U <- pobs(devol(X))
   tc <- fitCopula(tCopula(dim = d, dispstr = "un"), U, method = "mpl")
   set.seed(7)
   sim <- rCopula(20000, tc@copula)
@@ -109,7 +114,7 @@ m8_portfolio <- function(con) {
       ui_item("Gradi di libertà t-copula", fmt_num(tail(coef(tc), 1), 1), "bassi = più crolli congiunti")
     ),
     tables = list(ui_table("Rischio del portafoglio (20 000 scenari simulati)", tab), ui_table("Stress test condizionati", stress)),
-    notes = list("Simulazione: copula stimata sui ranghi, poi i rendimenti tornano alla distribuzione storica di ogni asset (marginali empiriche).",
+    notes = list("Simulazione: copula stimata sui ranghi dei rendimenti divisi per la volatilità EWMA, poi i rendimenti tornano alla distribuzione storica di ogni asset (marginali empiriche).",
                  "Pesi uguali tra gli asset di FORECAST_ASSETS; si cambiano dalla configurazione.")
   )
 }
@@ -187,7 +192,8 @@ m8_hawkes <- function(con, kind) {
       mu = f$mu, alpha = f$alpha, beta = f$beta, loglik_hawkes = f$ll, loglik_poisson = f$ll_pois, LR = lr, p_value = p_lr))),
     notes = list(
       "Processo di Hawkes con nucleo esponenziale: ogni evento alza l'intensità di alpha·beta, che poi decade al ritmo beta. alpha < 1 garantisce la stazionarietà.",
-      "Confronto con un processo di Poisson a intensità costante tramite test del rapporto di verosimiglianza.",
+      "Confronto con un processo di Poisson a intensità costante tramite test del rapporto di verosimiglianza. Sotto H0 alpha = 0 sta sul bordo e beta non è identificato: il p-value chi-quadro è indicativo.",
+      "Le notizie escono più di giorno che di notte: questa stagionalità può essere scambiata per autoeccitazione e gonfiare alpha.",
       "L'intensità degli ordini sull'order book richiede di registrare i trade grezzi per settimane: si aggiunge appena ci sono abbastanza dati."
     )
   )

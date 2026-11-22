@@ -86,7 +86,7 @@ m5_sentiment <- function(con) {
       ui_line("Fear & Greed / 100", d$fng / 100), ui_line("rendimento cumulato", cumsum(d$r))))),
     tables = list(ui_table("Coefficienti", coefs), ui_table("Confronto modelli", gl), ui_table("Scenari Fear & Greed a 7 giorni (ARIMAX)", scen_tab)),
     notes = list(
-      "Contemporaneo: rendimento di oggi spiegato dalla variazione di oggi del sentiment (descrive, non prevede).",
+      "Contemporaneo: rendimento di oggi spiegato dalla variazione di oggi del sentiment (descrive, non prevede). Il Fear & Greed di un giorno è calcolato su dati del giorno prima, quindi questa versione mescola un po' passato e presente.",
       "Predittivo e ARIMAX: solo valori di ieri, quindi utilizzabili per prevedere. L'ARIMAX aggiunge errori ARMA.",
       "Finché lo storico del sentiment delle nostre news è corto si usa il Crypto Fear & Greed index; il sentiment NLP entra da solo appena ci sono 60 giorni."
     )
@@ -132,7 +132,8 @@ m5_macro <- function(con) {
   # Log-log elasticities: levels (long run, check residual stationarity) and differences (short run)
   lv <- lm(log(btc) ~ log(M2) + log(DXY) + DGS10, data = m)
   lv_co <- as.data.frame(summary(lv)$coefficients); lv_co$term <- rownames(lv_co)
-  res_adf <- suppressWarnings(tseries::adf.test(residuals(lv))$p.value)
+  # Residuals of an estimated regression with 4 variables: Engle-Granger critical values, not the ADF ones.
+  eg <- eg_test(unname(residuals(lv)), 4)
   df_ <- lm(r ~ d_m2 + d_dxy + d_10y, data = m)
   df_co <- as.data.frame(summary(df_)$coefficients); df_co$term <- rownames(df_co)
   el <- data.frame(
@@ -147,7 +148,7 @@ m5_macro <- function(con) {
     headline = sprintf("Scenari macro a 3 mesi per %s: rialzista %s, neutrale %s, ribassista %s (R² corretto %.2f). Elasticità di lungo periodo a M2 %.2f e al dollaro %.2f; residui %s.",
                        split_asset(M5_MAIN)$symbol, fmt_pct(scen_tab$rendimento_3m[1]), fmt_pct(scen_tab$rendimento_3m[2]), fmt_pct(scen_tab$rendimento_3m[3]), r2,
                        el$elasticita_livelli[1], el$elasticita_livelli[2],
-                       if (res_adf < 0.05) "stazionari (relazione credibile)" else "non stazionari: possibile regressione spuria, fidarsi delle differenze"),
+                       if (eg$reject) "stazionari secondo Engle-Granger (relazione credibile)" else "non stazionari secondo Engle-Granger: possibile regressione spuria, fidarsi delle differenze"),
     verdict = "SCENARIOS",
     summary = list(
       ui_item("Rialzista 3m", fmt_pct(scen_tab$rendimento_3m[1]), "tassi −25 pb/mese, dollaro −1%, M2 +1%", "good"),
@@ -155,7 +156,7 @@ m5_macro <- function(con) {
       ui_item("Ribassista 3m", fmt_pct(scen_tab$rendimento_3m[3]), "tassi +25 pb/mese, dollaro +1%, M2 −0.5%", "bad"),
       ui_item("R² corretto", fmt_num(r2, 3), "TSLM mensile"),
       ui_item("Elasticità a M2", fmt_num(el$elasticita_livelli[1], 2), "1% di M2 in più → x% di prezzo"),
-      ui_item("ADF residui livelli", fmt_p(res_adf), "p < 0.05 = cointegrazione plausibile", if (res_adf < 0.05) "good" else "warn")
+      ui_item("Engle-Granger sui residui", sprintf("%.2f vs %.2f", eg$stat, eg$crit), "statistica sotto il critico 5% = cointegrazione plausibile", if (eg$reject) "good" else "warn")
     ),
     charts = list(ui_chart("Log prezzo vs log M2 (standardizzati)", as.character(m$month), list(
       ui_line("log prezzo", as.numeric(scale(log(m$btc)))), ui_line("log M2", as.numeric(scale(log(m$M2)))), ui_line("log dollaro", as.numeric(scale(log(m$DXY))))))),
@@ -163,7 +164,7 @@ m5_macro <- function(con) {
                   ui_table("Scenari a 3 mesi", scen_tab), ui_table("Elasticità log-log", el)),
     notes = list(
       "Scenari: si fissano i percorsi delle variabili macro per 3 mesi e il TSLM restituisce il rendimento atteso con intervallo all'80%.",
-      "Elasticità nei livelli: log prezzo su log M2, log dollaro e livello del 10Y. È di lungo periodo ma vale solo se i residui sono stazionari.",
+      "Elasticità nei livelli: log prezzo su log M2, log dollaro e livello del 10Y. È di lungo periodo ma vale solo se i residui sono stazionari (test di Engle-Granger con i valori critici di MacKinnon 2010).",
       "Elasticità nelle differenze: variazioni mensili, più robuste ma di breve periodo."
     )
   )
@@ -173,7 +174,9 @@ m5_macro <- function(con) {
 fed_events <- function(con) {
   tgt <- load_macro(con, "DFEDTARU", min_rows = 100)
   ch <- c(0, diff(tgt$value))
-  data.frame(day = tgt$date[ch != 0], change = ch[ch != 0])
+  # DFEDTARU is dated on the day the new target takes effect, normally the day after the FOMC
+  # announcement: the event day is moved back one calendar day to the announcement.
+  data.frame(day = tgt$date[ch != 0] - 1, effective = tgt$date[ch != 0], change = ch[ch != 0])
 }
 
 m5_events <- function(con, asset) {
@@ -198,10 +201,13 @@ m5_events <- function(con, asset) {
   final <- tail(post, 1)
   absorb <- which(abs(post - final) <= 0.1 * abs(final))[1] - 1
 
+  # Event day mapped to the first trading day on or after it (an announcement can fall on a weekend)
+  ev_td <- as.Date(vapply(ev$day, function(d) as.numeric(days[which(days >= d)[1]]), 0), origin = "1970-01-01")
+
   # Dummy regression: impulse on the event day, step after it (full sample, ARIMA errors)
   dd <- tibble::tibble(t = seq_along(r), r = r, day = days) |>
-    mutate(imp_hike = as.integer(day %in% ev$day[ev$change > 0]),
-           imp_cut = as.integer(day %in% ev$day[ev$change < 0]),
+    mutate(imp_hike = as.integer(day %in% ev_td[ev$change > 0]),
+           imp_cut = as.integer(day %in% ev_td[ev$change < 0]),
            step_tight = cumsum(imp_hike) - cumsum(imp_cut)) |>
     as_tsibble(index = t)
   fitd <- dd |> model(ARIMA(r ~ imp_hike + imp_cut + step_tight + pdq(0:1, 0, 0:1) + PDQ(0, 0, 0)))
@@ -233,7 +239,8 @@ m5_events <- function(con, asset) {
     tables = list(ui_table("Event study", tab), ui_table("Regressione con dummy (errori ARMA)", cod),
                   ui_table("Eventi usati", data.frame(giorno = as.character(ev$day), variazione_tasso = ev$change))),
     notes = list(
-      "Eventi: i giorni in cui il limite superiore del tasso FED (FRED DFEDTARU) cambia.",
+      "Eventi: i cambi del limite superiore del tasso FED (FRED DFEDTARU). La serie è datata al giorno di entrata in vigore, di solito il giorno dopo l'annuncio: l'evento è spostato indietro di un giorno.",
+      "La statistica t usa la deviazione standard di tutto il campione e assume eventi indipendenti: con circa 20 eventi è un'indicazione, non un test rigoroso.",
       "Rendimento anomalo = rendimento meno la media della finestra di stima [−120, −11] giorni.",
       "Dummy a impulso (giorno della decisione) e a gradino (somma cumulata di rialzi meno tagli, cioè il regime dei tassi).",
       "Le date di CPI ed earnings non sono ancora nel database: si aggiungono come eventi appena c'è una fonte gratuita affidabile."

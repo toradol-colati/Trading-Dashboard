@@ -26,13 +26,16 @@ load_scored <- function(con) {
 score_table <- function(d) {
   d |>
     mutate(err = actual - point,
-           hit = sign(point - at_issue) == sign(actual - at_issue),
+           # Direction is undefined for NAIVE: its point is the last price (plus only the small log
+           # back-transform bias, which would always read as "up"). Left out instead of counted.
+           hit = ifelse(grepl("(^|_)naive$", model) | abs(point / at_issue - 1) < 1e-6, NA,
+                        sign(point - at_issue) == sign(actual - at_issue)),
            in80 = actual >= lo80 & actual <= hi80, in95 = actual >= lo95 & actual <= hi95,
            w80 = winkler(lo80, hi80, actual, 0.8), w95 = winkler(lo95, hi95, actual, 0.95),
            qs = (pinball(lo80, actual, 0.1) + pinball(hi80, actual, 0.9)) / 2) |>
     group_by(model) |>
     summarise(n = n(), MAE = mean(abs(err)), RMSE = sqrt(mean(err^2)), MAPE = 100 * mean(abs(err / actual)),
-              direzione = mean(hit, na.rm = TRUE), coverage80 = mean(in80), coverage95 = mean(in95),
+              direzione = if (all(is.na(hit))) NA_real_ else mean(hit, na.rm = TRUE), coverage80 = mean(in80), coverage95 = mean(in95),
               winkler80 = mean(w80), winkler95 = mean(w95), quantile_score = mean(qs), .groups = "drop") |>
     arrange(MAE)
 }
@@ -89,7 +92,10 @@ m6_symbol <- function(con, d, symbol) {
       "Previsioni vere, salvate prima di conoscere il risultato: è il test fuori campione più onesto possibile.",
       "Winkler: ampiezza dell'intervallo più una penalità quando il prezzo esce. Quantile score: pinball ai quantili 10% e 90% (i bordi dell'80%).",
       "Ljung-Box sugli errori a 1 giorno: p < 0.05 vuol dire che gli errori hanno una struttura che il modello non ha catturato.",
-      "Modelli con prefisso m3_ vengono dal Risk Engine, gli altri dal modulo M0."
+      "Modelli con prefisso m3_ vengono dal Risk Engine, gli altri dal modulo M0.",
+      "Direzione: vuota per i modelli la cui previsione non si muove (NAIVE), per cui la direzione non è definita.",
+      "Le tabelle sono ordinate per MAE; M3 sceglie il vincitore per CRPS. Il Winkler 80% è il criterio più vicino a quello di M3.",
+      "Previsioni emesse ogni giorno a 1-7 giorni si sovrappongono: gli errori sono correlati e le conclusioni vanno tratte dopo qualche mese, non dopo poche settimane."
     )
   )
 }
